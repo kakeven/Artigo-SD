@@ -1,0 +1,61 @@
+services:
+
+  normal:
+    build: ./normal
+    container_name: monitor-normal
+    ports:
+      - "8001:8000"
+    labels:
+      monitor: "true"
+      tipo: "normal"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 2
+
+  instavel:
+    build: ./instavel
+    container_name: monitor-instavel
+    ports:
+      - "8002:8000"
+    labels:
+      monitor: "true"
+      tipo: "instavel"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 2
+
+  carga:
+    build: ./carga
+    container_name: monitor-carga
+    ports:
+      - "8003:8000"
+    labels:
+      monitor: "true"
+      tipo: "carga"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 2
