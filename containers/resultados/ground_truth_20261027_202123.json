@@ -1,0 +1,16 @@
+{
+  "episode_started_at": "2026-10-27T23:21:12.877283+00:00",
+  "faults": [
+    {
+      "root_service": "instavel",
+      "fault_type": "intermittent",
+      "error_name": "IntermittentBackendError"
+    },
+    {
+      "root_service": "carga",
+      "fault_type": "continuous",
+      "error_name": "OverloadError"
+    }
+  ],
+  "finished_at": "2026-10-27T23:21:23.402938+00:00"
+}

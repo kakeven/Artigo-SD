@@ -4,7 +4,9 @@ services:
     build: ./normal
     container_name: monitor-normal
     ports:
-      - "8001:8000"
+      - "127.0.0.1:8001:8000"
+    environment:
+      BACKEND_URL: http://instavel:8000
     labels:
       monitor: "true"
       tipo: "normal"
@@ -24,7 +26,9 @@ services:
     build: ./instavel
     container_name: monitor-instavel
     ports:
-      - "8002:8000"
+      - "127.0.0.1:8002:8000"
+    environment:
+      AGENT_CONTROL_TOKEN: ${AGENT_CONTROL_TOKEN:?Execute python preparar_ambiente.py}
     labels:
       monitor: "true"
       tipo: "instavel"
@@ -44,7 +48,9 @@ services:
     build: ./carga
     container_name: monitor-carga
     ports:
-      - "8003:8000"
+      - "127.0.0.1:8003:8000"
+    environment:
+      AGENT_CONTROL_TOKEN: ${AGENT_CONTROL_TOKEN:?Execute python preparar_ambiente.py}
     labels:
       monitor: "true"
       tipo: "carga"
@@ -59,3 +65,47 @@ services:
       interval: 5s
       timeout: 3s
       retries: 2
+
+  protecao:
+    build: ./protecao
+    ports:
+      - "127.0.0.1:8004:8000"
+    environment:
+      BACKEND_URL: http://instavel:8000
+      NORMAL_URL: http://normal:8000
+      ERROR_URL: http://carga:8000
+      AGENT_URL: http://agente:8000
+      AGENT_CONTROL_TOKEN: ${AGENT_CONTROL_TOKEN:?Execute python preparar_ambiente.py}
+      MAX_ATTEMPTS: "2"
+      FAILURE_THRESHOLD: "5"
+      COOLDOWN_SECONDS: "5"
+    depends_on:
+      - instavel
+      - normal
+      - carga
+
+  agente:
+    build: ./agente
+    ports:
+      - "127.0.0.1:8005:8000"
+    environment:
+      NORMAL_URL: http://normal:8000
+      UNSTABLE_URL: http://instavel:8000
+      ERROR_URL: http://carga:8000
+      GATEWAY_URL: http://protecao:8000
+      LOG_DB_PATH: /data/observabilidade.db
+      AGENT_CONTROL_TOKEN: ${AGENT_CONTROL_TOKEN:?Execute python preparar_ambiente.py}
+      OLLAMA_URL: http://host.docker.internal:11434
+      OLLAMA_MODEL: qwen2.5:1.5b-instruct-q4_K_M
+    volumes:
+      - agent_data:/data
+      - ./carga:/source/carga:ro
+      - ./instavel:/source/instavel:ro
+    depends_on:
+      - normal
+      - instavel
+      - carga
+      - protecao
+
+volumes:
+  agent_data:

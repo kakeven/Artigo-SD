@@ -1,0 +1,278 @@
+{
+  "summary": {
+    "episodes": 3,
+    "fault_cases": 6,
+    "detection_recall": 1.0,
+    "root_cause_accuracy": 1.0,
+    "repair_success_rate": 1.0,
+    "healthy_control_false_alarm_rate": 0.0,
+    "mean_detection_delay_seconds": 1.307
+  },
+  "episodes": [
+    {
+      "index": 1,
+      "episode_started_at": "2026-10-27T23:04:27.352791+00:00",
+      "healthy_control": {
+        "normal_requests": 8,
+        "unstable_healthy_requests": 12,
+        "false_alarm": false,
+        "predictions": {
+          "normal": {
+            "type": "normal",
+            "confidence": 1.0,
+            "sample_size": 8
+          },
+          "instavel": {
+            "type": "normal",
+            "confidence": 1.0,
+            "sample_size": 12
+          }
+        }
+      },
+      "faults": [
+        {
+          "root_service": "instavel",
+          "fault_type": "intermittent",
+          "started_at": "2026-10-27T23:04:29.987355+00:00"
+        },
+        {
+          "root_service": "carga",
+          "fault_type": "continuous",
+          "started_at": "2026-10-27T23:04:33.777456+00:00"
+        }
+      ],
+      "results": {
+        "instavel": {
+          "started_at": "2026-10-27T23:04:29.987355+00:00",
+          "requests": 22,
+          "direct_errors": 4,
+          "direct_successes": 18,
+          "repaired_successes": 15,
+          "last_response": {
+            "status": 200,
+            "served_by": "instavel",
+            "fault_active": false
+          }
+        },
+        "carga": {
+          "started_at": "2026-10-27T23:04:33.777456+00:00",
+          "requests": 22,
+          "direct_errors": 10,
+          "direct_successes": 12,
+          "repaired_successes": 12,
+          "last_response": {
+            "status": 200,
+            "served_by": "carga",
+            "fault_active": false
+          }
+        }
+      },
+      "decisions": [
+        {
+          "id": 24,
+          "timestamp": "2026-10-27T23:04:35.298345+00:00",
+          "target": "carga",
+          "predicted_type": "continuous",
+          "confidence": 1.0,
+          "action": "disable_simulated_fault",
+          "verified": 1,
+          "evidence_request_id": "7dc0a3b7-985f-4191-b198-5a44cd1c7fba"
+        },
+        {
+          "id": 23,
+          "timestamp": "2026-10-27T23:04:31.067422+00:00",
+          "target": "instavel",
+          "predicted_type": "intermittent",
+          "confidence": 0.9974999999999999,
+          "action": "disable_simulated_fault",
+          "verified": 1,
+          "evidence_request_id": "9f6321d7-d997-4250-9bdb-939c53253590"
+        }
+      ],
+      "detected": 2,
+      "root_cause_correct": 2,
+      "remediation_verified": 2,
+      "detection_delays_seconds": [
+        1.08,
+        1.521
+      ]
+    },
+    {
+      "index": 2,
+      "episode_started_at": "2026-10-27T23:04:37.479311+00:00",
+      "healthy_control": {
+        "normal_requests": 8,
+        "unstable_healthy_requests": 12,
+        "false_alarm": false,
+        "predictions": {
+          "normal": {
+            "type": "normal",
+            "confidence": 1.0,
+            "sample_size": 8
+          },
+          "instavel": {
+            "type": "normal",
+            "confidence": 1.0,
+            "sample_size": 12
+          }
+        }
+      },
+      "faults": [
+        {
+          "root_service": "instavel",
+          "fault_type": "intermittent",
+          "started_at": "2026-10-27T23:04:40.197066+00:00"
+        },
+        {
+          "root_service": "carga",
+          "fault_type": "continuous",
+          "started_at": "2026-10-27T23:04:43.852748+00:00"
+        }
+      ],
+      "results": {
+        "instavel": {
+          "started_at": "2026-10-27T23:04:40.197066+00:00",
+          "requests": 22,
+          "direct_errors": 5,
+          "direct_successes": 17,
+          "repaired_successes": 12,
+          "last_response": {
+            "status": 200,
+            "served_by": "instavel",
+            "fault_active": false
+          }
+        },
+        "carga": {
+          "started_at": "2026-10-27T23:04:43.852748+00:00",
+          "requests": 22,
+          "direct_errors": 7,
+          "direct_successes": 15,
+          "repaired_successes": 15,
+          "last_response": {
+            "status": 200,
+            "served_by": "carga",
+            "fault_active": false
+          }
+        }
+      },
+      "decisions": [
+        {
+          "id": 26,
+          "timestamp": "2026-10-27T23:04:44.973372+00:00",
+          "target": "carga",
+          "predicted_type": "continuous",
+          "confidence": 1.0,
+          "action": "disable_simulated_fault",
+          "verified": 1,
+          "evidence_request_id": "c59a5a66-2e35-4468-bb50-288b0a1916dd"
+        },
+        {
+          "id": 25,
+          "timestamp": "2026-10-27T23:04:41.811532+00:00",
+          "target": "instavel",
+          "predicted_type": "intermittent",
+          "confidence": 0.9974999999999999,
+          "action": "disable_simulated_fault",
+          "verified": 1,
+          "evidence_request_id": "a2759324-1daf-468e-af3c-159fff88f87c"
+        }
+      ],
+      "detected": 2,
+      "root_cause_correct": 2,
+      "remediation_verified": 2,
+      "detection_delays_seconds": [
+        1.614,
+        1.121
+      ]
+    },
+    {
+      "index": 3,
+      "episode_started_at": "2026-10-27T23:04:47.629224+00:00",
+      "healthy_control": {
+        "normal_requests": 8,
+        "unstable_healthy_requests": 12,
+        "false_alarm": false,
+        "predictions": {
+          "normal": {
+            "type": "normal",
+            "confidence": 1.0,
+            "sample_size": 8
+          },
+          "instavel": {
+            "type": "normal",
+            "confidence": 1.0,
+            "sample_size": 12
+          }
+        }
+      },
+      "faults": [
+        {
+          "root_service": "instavel",
+          "fault_type": "intermittent",
+          "started_at": "2026-10-27T23:04:50.241836+00:00"
+        },
+        {
+          "root_service": "carga",
+          "fault_type": "continuous",
+          "started_at": "2026-10-27T23:04:53.991302+00:00"
+        }
+      ],
+      "results": {
+        "instavel": {
+          "started_at": "2026-10-27T23:04:50.241836+00:00",
+          "requests": 22,
+          "direct_errors": 3,
+          "direct_successes": 19,
+          "repaired_successes": 16,
+          "last_response": {
+            "status": 200,
+            "served_by": "instavel",
+            "fault_active": false
+          }
+        },
+        "carga": {
+          "started_at": "2026-10-27T23:04:53.991302+00:00",
+          "requests": 22,
+          "direct_errors": 9,
+          "direct_successes": 13,
+          "repaired_successes": 13,
+          "last_response": {
+            "status": 200,
+            "served_by": "carga",
+            "fault_active": false
+          }
+        }
+      },
+      "decisions": [
+        {
+          "id": 28,
+          "timestamp": "2026-10-27T23:04:55.459109+00:00",
+          "target": "carga",
+          "predicted_type": "continuous",
+          "confidence": 1.0,
+          "action": "disable_simulated_fault",
+          "verified": 1,
+          "evidence_request_id": "53069c5e-f6a4-422d-8524-45bda57f3418"
+        },
+        {
+          "id": 27,
+          "timestamp": "2026-10-27T23:04:51.279030+00:00",
+          "target": "instavel",
+          "predicted_type": "intermittent",
+          "confidence": 0.9910714285714285,
+          "action": "disable_simulated_fault",
+          "verified": 1,
+          "evidence_request_id": "6735cc83-7eb7-4eb6-9e0b-0a0cf0aa0a36"
+        }
+      ],
+      "detected": 2,
+      "root_cause_correct": 2,
+      "remediation_verified": 2,
+      "detection_delays_seconds": [
+        1.037,
+        1.468
+      ]
+    }
+  ],
+  "generated_at": "2026-10-27T23:04:57.720922+00:00"
+}

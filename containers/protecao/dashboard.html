@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Observabilidade | Laboratório de falhas</title>
+  <style>
+    :root { color-scheme: light; --ink: #173047; --muted: #5f7384; --paper: #f3f7fa; --line: #cbd8e2; --blue: #1763a6; --amber: #bb6a12; --red: #b8443a; --green: #237956; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.5 "Segoe UI", Arial, sans-serif; }
+    main { max-width: 1320px; margin: 0 auto; padding: 32px 24px 64px; }
+    header { display: flex; justify-content: space-between; align-items: start; gap: 24px; border-bottom: 2px solid var(--ink); padding-bottom: 24px; }
+    h1 { font-size: clamp(2rem, 4vw, 3.4rem); line-height: 1.08; letter-spacing: -.045em; max-width: 730px; margin: 0 0 12px; }
+    h2 { font-size: 1.25rem; letter-spacing: -.02em; margin: 0 0 18px; }
+    p { margin: 0; color: var(--muted); max-width: 720px; }
+    .live { white-space: nowrap; display: flex; align-items: center; gap: 9px; padding: 8px 12px; background: #fff; border: 1px solid var(--line); border-radius: 4px; font-size: .88rem; }
+    .live::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--green); }
+    .live.off::before { background: var(--red); }
+    .summary { display: grid; grid-template-columns: minmax(230px, 1.35fr) repeat(3, minmax(150px, 1fr)); gap: 12px; margin: 24px 0; }
+    .panel { background: #fff; border: 1px solid var(--line); border-radius: 4px; padding: 22px; }
+    .state-panel { background: #e5eff7; border-color: #abc8df; }
+    .label { color: var(--muted); font-size: .88rem; margin-bottom: 10px; }
+    .value { font-size: clamp(1.7rem, 3vw, 2.5rem); line-height: 1.1; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .value.state { text-transform: lowercase; }
+    .value.open { color: var(--red); }
+    .value.half_open { color: var(--amber); }
+    .value.closed { color: var(--green); }
+    .section-grid { display: grid; grid-template-columns: minmax(280px, .9fr) minmax(420px, 1.7fr); gap: 14px; }
+    .cascade { margin-bottom: 14px; }
+    .agent-panel { margin-bottom: 14px; }
+    .decision { display: grid; grid-template-columns: minmax(90px, .6fr) minmax(120px, 1fr) minmax(150px, 1.2fr) 70px; gap: 12px; padding: 10px 0; border-top: 1px solid #e5edf3; font-size: .9rem; }
+    .decision strong { color: var(--ink); }
+    .decision .verified { color: var(--green); font-weight: 700; }
+    .cascade-grid { display: grid; grid-template-columns: repeat(2, minmax(150px, 1fr)); gap: 12px; }
+    .cascade-result { border-left: 4px solid var(--red); padding: 6px 0 6px 16px; }
+    .cascade-result.protected { border-color: var(--green); }
+    .cascade-result .value { margin-top: 4px; }
+    .bars { display: grid; gap: 17px; }
+    .bar-head { display: flex; justify-content: space-between; gap: 12px; font-size: .92rem; }
+    .bar-head strong { font-variant-numeric: tabular-nums; }
+    .track { height: 15px; background: #e9eff4; margin-top: 6px; border-radius: 2px; overflow: hidden; }
+    .fill { height: 100%; width: 0; background: var(--blue); transition: width .3s ease; }
+    .fill.bounded { background: #68a1c8; }
+    .fill.protected { background: var(--green); }
+    .tip { font-size: .84rem; margin-top: 20px; }
+    .events-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    input { font: inherit; font-size: .9rem; border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px; width: min(100%, 280px); color: var(--ink); }
+    input:focus-visible { outline: 3px solid #8bc0eb; outline-offset: 2px; }
+    .table-wrap { overflow-x: auto; max-height: 540px; overflow-y: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    th { text-align: left; color: var(--muted); font-weight: 600; position: sticky; top: 0; background: #fff; }
+    th, td { padding: 10px 8px; border-bottom: 1px solid #e5edf3; vertical-align: top; }
+    td.code { font-family: Consolas, "Courier New", monospace; font-size: .82rem; }
+    .empty { padding: 28px 0; color: var(--muted); }
+    @media (max-width: 900px) { .summary { grid-template-columns: repeat(2, 1fr); } .section-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 560px) { main { padding: 22px 14px 48px; } header { display: block; } .live { width: fit-content; margin-top: 18px; } .summary { grid-template-columns: 1fr 1fr; } .panel { padding: 16px; } .decision { grid-template-columns: 1fr 1fr; } }
+    @media (prefers-reduced-motion: reduce) { .fill { transition: none; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>Observe a falha antes de corrigi-la.</h1>
+        <p>Compare retentativas e falhas em cascata. Siga cada requisição pelos eventos dos serviços.</p>
+      </div>
+      <div id="live" class="live" role="status">Atualizando a cada 2 s</div>
+    </header>
+
+    <section class="summary" aria-label="Resumo">
+      <div class="panel state-panel"><div class="label">Estado do circuito</div><div id="circuit" class="value state">—</div></div>
+      <div class="panel"><div class="label">Chamadas ao serviço instável</div><div id="backend-total" class="value">0</div></div>
+      <div class="panel"><div class="label">Tentativas pela proteção</div><div id="attempts" class="value">0</div></div>
+      <div class="panel"><div class="label">Chamadas barradas</div><div id="blocked" class="value">0</div></div>
+    </section>
+
+    <section class="panel agent-panel" aria-labelledby="agent-title">
+      <h2 id="agent-title">Decisões do agente</h2>
+      <p id="agent-state">Aguardando dados do modelo local.</p>
+      <div id="agent-decisions" aria-live="polite"></div>
+    </section>
+
+    <section class="panel cascade" aria-labelledby="cascade-title">
+      <h2 id="cascade-title">Falha em cascata: chamadas independentes que responderam</h2>
+      <div class="cascade-grid">
+        <div class="cascade-result"><div class="label">Capacidade compartilhada</div><div id="unsafe-success" class="value">0</div></div>
+        <div class="cascade-result protected"><div class="label">Dependência isolada</div><div id="protected-success" class="value">0</div></div>
+      </div>
+      <p class="tip">Execute <code>python experimento_cascata.py</code> para comparar as duas configurações.</p>
+    </section>
+
+    <div class="section-grid">
+      <section class="panel" aria-labelledby="comparison-title">
+        <h2 id="comparison-title">Chamadas por cenário</h2>
+        <div id="bars" class="bars"></div>
+        <p class="tip">Execute <code>python experimento.py</code> para comparar retentativas. Os valores são acumulados desde o início do serviço.</p>
+      </section>
+      <section class="panel" aria-labelledby="events-title">
+        <div class="events-head">
+          <h2 id="events-title">Eventos recentes</h2>
+          <input id="filter" type="search" placeholder="Filtrar por ID da requisição" aria-label="Filtrar por ID da requisição">
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Hora</th><th>Serviço</th><th>Cenário</th><th>Evento</th><th>Tentativa</th><th>ID da requisição</th></tr></thead>
+            <tbody id="rows"></tbody>
+          </table>
+          <p id="empty" class="empty">Nenhum evento ainda. Execute o experimento para acompanhar as chamadas.</p>
+        </div>
+      </section>
+    </div>
+  </main>
+  <script>
+    const byId = id => document.getElementById(id);
+    const names = {baseline: 'Sem proteção', bounded: 'Duas tentativas', protected: 'Com circuito'};
+    const integer = value => Number(value || 0).toLocaleString('pt-BR');
+    const td = (row, value, code = false) => { const cell = document.createElement('td'); cell.textContent = value ?? '—'; if (code) cell.className = 'code'; row.appendChild(cell); };
+    function renderBars(scenarios) {
+      const area = byId('bars'); area.replaceChildren();
+      const max = Math.max(1, ...Object.values(scenarios).map(item => item.total || 0));
+      for (const name of ['baseline', 'bounded', 'protected']) {
+        const count = scenarios[name]?.total || 0;
+        const item = document.createElement('div');
+        const head = document.createElement('div'); head.className = 'bar-head';
+        const label = document.createElement('span'); label.textContent = names[name];
+        const value = document.createElement('strong'); value.textContent = integer(count);
+        head.append(label, value);
+        const track = document.createElement('div'); track.className = 'track';
+        const fill = document.createElement('div'); fill.className = `fill ${name}`; fill.style.width = `${100 * count / max}%`;
+        track.appendChild(fill); item.append(head, track); area.appendChild(item);
+      }
+    }
+    function renderEvents(events) {
+      const rows = byId('rows'); rows.replaceChildren();
+      byId('empty').hidden = events.length > 0;
+      for (const event of events) {
+        const row = document.createElement('tr');
+        td(row, new Date(event.timestamp).toLocaleTimeString('pt-BR'));
+        td(row, event.service); td(row, event.scenario); td(row, event.event);
+        td(row, event.attempt); td(row, event.request_id, true);
+        rows.appendChild(row);
+      }
+    }
+    function renderAgent(agent) {
+      const area = byId('agent-decisions'); area.replaceChildren();
+      if (!agent?.reachable) { byId('agent-state').textContent = 'Agente indisponível.'; return; }
+      const decisions = agent.status.decisions || [];
+      byId('agent-state').textContent = decisions.length ? 'Classificação, ação e verificação registradas em SQLite.' : 'Sem decisões ainda. Execute python demo_agente.py.';
+      for (const decision of decisions.slice(0, 6)) {
+        const row = document.createElement('div'); row.className = 'decision';
+        for (const value of [decision.target, decision.predicted_type, decision.action]) {
+          const item = document.createElement('span'); item.textContent = value; row.appendChild(item);
+        }
+        const result = document.createElement('span'); result.className = decision.verified ? 'verified' : '';
+        result.textContent = decision.verified ? 'verificado' : 'falhou'; row.appendChild(result);
+        area.appendChild(row);
+      }
+    }
+    async function refresh() {
+      const live = byId('live');
+      try {
+        const filter = byId('filter').value.trim();
+        const url = `/observability?limit=500${filter ? `&request_id=${encodeURIComponent(filter)}` : ''}`;
+        const response = await fetch(url, {cache: 'no-store'});
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        const protection = data.protection;
+        const backend = data.backend;
+        const normal = data.normal;
+        const state = protection.stats.circuit.state;
+        const circuit = byId('circuit'); circuit.textContent = state.replace('_', ' '); circuit.className = `value state ${state}`;
+        byId('attempts').textContent = integer(protection.stats.backend_attempts);
+        byId('blocked').textContent = integer(protection.stats.short_circuited);
+        byId('backend-total').textContent = backend.reachable ? integer(backend.stats.total) : '—';
+        byId('unsafe-success').textContent = normal.reachable ? integer(normal.stats.independent.unsafe.success) : '—';
+        byId('protected-success').textContent = normal.reachable ? integer(normal.stats.independent.protected.success) : '—';
+        renderBars(backend.reachable ? backend.stats.por_cenario : {});
+        renderAgent(data.agent);
+        const events = [...protection.events, ...(backend.reachable ? backend.events : []), ...(normal.reachable ? normal.events : [])]
+          .sort((a, b) => b.timestamp.localeCompare(a.timestamp)).slice(0, 500);
+        renderEvents(events);
+        live.textContent = backend.reachable && normal.reachable ? 'Atualizando a cada 2 s' : 'Um serviço está indisponível';
+        live.classList.toggle('off', !backend.reachable || !normal.reachable);
+      } catch (error) {
+        live.textContent = `Falha ao ler dados: ${error.message}`;
+        live.classList.add('off');
+      }
+    }
+    byId('filter').addEventListener('input', refresh);
+    refresh(); setInterval(refresh, 2000);
+  </script>
+</body>
+</html>

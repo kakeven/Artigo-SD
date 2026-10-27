@@ -1,0 +1,34 @@
+{
+  "learning_incidents": [
+    {
+      "incident": 1,
+      "error_name": "DependencyTimeoutError",
+      "decision_source": "qwen",
+      "action": "restore_dependency",
+      "verified": true
+    },
+    {
+      "incident": 2,
+      "error_name": "DependencyTimeoutError",
+      "decision_source": "qwen",
+      "action": "restore_dependency",
+      "verified": true
+    },
+    {
+      "incident": 3,
+      "error_name": "DependencyTimeoutError",
+      "decision_source": "qwen",
+      "action": "restore_dependency",
+      "verified": true
+    }
+  ],
+  "memory_case": {
+    "target": "carga",
+    "error_name": "DependencyTimeoutError",
+    "action": "restore_dependency",
+    "verified_count": 3
+  },
+  "reused_action": "restore_dependency",
+  "reused_from": "memory",
+  "reused_verified": true
+}

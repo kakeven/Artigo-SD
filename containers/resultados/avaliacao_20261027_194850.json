@@ -1,0 +1,266 @@
+{
+  "summary": {
+    "episodes": 3,
+    "fault_cases": 6,
+    "detection_recall": 1.0,
+    "root_cause_accuracy": 1.0,
+    "remediation_success_rate": 1.0,
+    "healthy_control_false_alarm_rate": 0.0,
+    "mean_detection_delay_seconds": 1.599
+  },
+  "episodes": [
+    {
+      "index": 1,
+      "episode_started_at": "2026-10-27T22:48:19.747405+00:00",
+      "healthy_control": {
+        "normal_requests": 8,
+        "unstable_healthy_requests": 12,
+        "false_alarm": false,
+        "predictions": {
+          "normal": {
+            "type": "normal",
+            "confidence": 1.0,
+            "sample_size": 8
+          },
+          "instavel": {
+            "type": "normal",
+            "confidence": 1.0,
+            "sample_size": 12
+          }
+        }
+      },
+      "faults": [
+        {
+          "root_service": "instavel",
+          "fault_type": "intermittent",
+          "started_at": "2026-10-27T22:48:22.304655+00:00"
+        },
+        {
+          "root_service": "carga",
+          "fault_type": "continuous",
+          "started_at": "2026-10-27T22:48:26.044589+00:00"
+        }
+      ],
+      "results": {
+        "instavel": {
+          "started_at": "2026-10-27T22:48:22.304655+00:00",
+          "requests": 22,
+          "direct_errors": 6,
+          "fallback_successes": 10,
+          "last_response": {
+            "status": 200,
+            "served_by": "normal"
+          }
+        },
+        "carga": {
+          "started_at": "2026-10-27T22:48:26.044589+00:00",
+          "requests": 22,
+          "direct_errors": 11,
+          "fallback_successes": 11,
+          "last_response": {
+            "status": 200,
+            "served_by": "normal"
+          }
+        }
+      },
+      "decisions": [
+        {
+          "id": 4,
+          "timestamp": "2026-10-27T22:48:27.754040+00:00",
+          "target": "carga",
+          "predicted_type": "continuous",
+          "confidence": 1.0,
+          "action": "fallback_to_normal",
+          "verified": 1,
+          "evidence_request_id": "c7811610-8708-485c-8bda-47349ce5c968"
+        },
+        {
+          "id": 3,
+          "timestamp": "2026-10-27T22:48:24.161731+00:00",
+          "target": "instavel",
+          "predicted_type": "intermittent",
+          "confidence": 0.9974999999999999,
+          "action": "fallback_to_normal",
+          "verified": 1,
+          "evidence_request_id": "7a10bb13-4313-4346-b3a0-7b36e5fbe602"
+        }
+      ],
+      "detected": 2,
+      "root_cause_correct": 2,
+      "remediation_verified": 2,
+      "detection_delays_seconds": [
+        1.857,
+        1.709
+      ]
+    },
+    {
+      "index": 2,
+      "episode_started_at": "2026-10-27T22:48:29.761896+00:00",
+      "healthy_control": {
+        "normal_requests": 8,
+        "unstable_healthy_requests": 12,
+        "false_alarm": false,
+        "predictions": {
+          "normal": {
+            "type": "normal",
+            "confidence": 1.0,
+            "sample_size": 8
+          },
+          "instavel": {
+            "type": "normal",
+            "confidence": 1.0,
+            "sample_size": 12
+          }
+        }
+      },
+      "faults": [
+        {
+          "root_service": "instavel",
+          "fault_type": "intermittent",
+          "started_at": "2026-10-27T22:48:32.416509+00:00"
+        },
+        {
+          "root_service": "carga",
+          "fault_type": "continuous",
+          "started_at": "2026-10-27T22:48:36.175193+00:00"
+        }
+      ],
+      "results": {
+        "instavel": {
+          "started_at": "2026-10-27T22:48:32.416509+00:00",
+          "requests": 22,
+          "direct_errors": 4,
+          "fallback_successes": 15,
+          "last_response": {
+            "status": 200,
+            "served_by": "normal"
+          }
+        },
+        "carga": {
+          "started_at": "2026-10-27T22:48:36.175193+00:00",
+          "requests": 22,
+          "direct_errors": 10,
+          "fallback_successes": 12,
+          "last_response": {
+            "status": 200,
+            "served_by": "normal"
+          }
+        }
+      },
+      "decisions": [
+        {
+          "id": 6,
+          "timestamp": "2026-10-27T22:48:37.908824+00:00",
+          "target": "carga",
+          "predicted_type": "continuous",
+          "confidence": 1.0,
+          "action": "fallback_to_normal",
+          "verified": 1,
+          "evidence_request_id": "2d19b174-bd94-4b04-9600-e6c6ae7dee6f"
+        },
+        {
+          "id": 5,
+          "timestamp": "2026-10-27T22:48:33.486135+00:00",
+          "target": "instavel",
+          "predicted_type": "intermittent",
+          "confidence": 0.9910714285714285,
+          "action": "fallback_to_normal",
+          "verified": 1,
+          "evidence_request_id": "7461c283-af1a-4d90-9a07-25acdfbcaa95"
+        }
+      ],
+      "detected": 2,
+      "root_cause_correct": 2,
+      "remediation_verified": 2,
+      "detection_delays_seconds": [
+        1.07,
+        1.734
+      ]
+    },
+    {
+      "index": 3,
+      "episode_started_at": "2026-10-27T22:48:40.120578+00:00",
+      "healthy_control": {
+        "normal_requests": 8,
+        "unstable_healthy_requests": 12,
+        "false_alarm": false,
+        "predictions": {
+          "normal": {
+            "type": "normal",
+            "confidence": 1.0,
+            "sample_size": 8
+          },
+          "instavel": {
+            "type": "normal",
+            "confidence": 1.0,
+            "sample_size": 12
+          }
+        }
+      },
+      "faults": [
+        {
+          "root_service": "instavel",
+          "fault_type": "intermittent",
+          "started_at": "2026-10-27T22:48:42.783871+00:00"
+        },
+        {
+          "root_service": "carga",
+          "fault_type": "continuous",
+          "started_at": "2026-10-27T22:48:46.478152+00:00"
+        }
+      ],
+      "results": {
+        "instavel": {
+          "started_at": "2026-10-27T22:48:42.783871+00:00",
+          "requests": 22,
+          "direct_errors": 6,
+          "fallback_successes": 10,
+          "last_response": {
+            "status": 200,
+            "served_by": "normal"
+          }
+        },
+        "carga": {
+          "started_at": "2026-10-27T22:48:46.478152+00:00",
+          "requests": 22,
+          "direct_errors": 8,
+          "fallback_successes": 14,
+          "last_response": {
+            "status": 200,
+            "served_by": "normal"
+          }
+        }
+      },
+      "decisions": [
+        {
+          "id": 8,
+          "timestamp": "2026-10-27T22:48:47.815028+00:00",
+          "target": "carga",
+          "predicted_type": "continuous",
+          "confidence": 1.0,
+          "action": "fallback_to_normal",
+          "verified": 1,
+          "evidence_request_id": "19c28738-e12c-4d25-9fc9-7691481000e4"
+        },
+        {
+          "id": 7,
+          "timestamp": "2026-10-27T22:48:44.670336+00:00",
+          "target": "instavel",
+          "predicted_type": "intermittent",
+          "confidence": 0.9974999999999999,
+          "action": "fallback_to_normal",
+          "verified": 1,
+          "evidence_request_id": "cf23f4de-aa87-4eb2-adda-802b4100d5fe"
+        }
+      ],
+      "detected": 2,
+      "root_cause_correct": 2,
+      "remediation_verified": 2,
+      "detection_delays_seconds": [
+        1.886,
+        1.337
+      ]
+    }
+  ],
+  "generated_at": "2026-10-27T22:48:50.212047+00:00"
+}

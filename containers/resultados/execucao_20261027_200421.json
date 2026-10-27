@@ -1,0 +1,104 @@
+{
+  "report": {
+    "results": {
+      "normal": {
+        "started_at": "2026-10-27T23:04:12.377044+00:00",
+        "requests": 8,
+        "direct_errors": 0,
+        "direct_successes": 8,
+        "repaired_successes": 0,
+        "last_response": {
+          "status": 200,
+          "served_by": "normal",
+          "fault_active": null
+        }
+      },
+      "instavel": {
+        "started_at": "2026-10-27T23:04:13.681273+00:00",
+        "requests": 22,
+        "direct_errors": 5,
+        "direct_successes": 17,
+        "repaired_successes": 11,
+        "last_response": {
+          "status": 200,
+          "served_by": "instavel",
+          "fault_active": false
+        }
+      },
+      "carga": {
+        "started_at": "2026-10-27T23:04:17.403615+00:00",
+        "requests": 22,
+        "direct_errors": 7,
+        "direct_successes": 15,
+        "repaired_successes": 15,
+        "last_response": {
+          "status": 200,
+          "served_by": "carga",
+          "fault_active": false
+        }
+      }
+    },
+    "agent_decisions": [
+      {
+        "id": 22,
+        "timestamp": "2026-10-27T23:04:18.480109+00:00",
+        "target": "carga",
+        "predicted_type": "continuous",
+        "confidence": 1.0,
+        "action": "disable_simulated_fault",
+        "verified": 1,
+        "evidence_request_id": "4db10f90-ec0e-4926-baaf-2dcec7943bea"
+      },
+      {
+        "id": 21,
+        "timestamp": "2026-10-27T23:04:15.370356+00:00",
+        "target": "instavel",
+        "predicted_type": "intermittent",
+        "confidence": 1.0,
+        "action": "disable_simulated_fault",
+        "verified": 1,
+        "evidence_request_id": "3050c8a2-79d4-4df3-9fc1-8f2a32cf5152"
+      }
+    ],
+    "root_cause_correct": 2,
+    "root_cause_total": 2,
+    "ground_truth_file": "G:\\Artigo SD\\containers\\resultados\\ground_truth_20261027_200421.json"
+  },
+  "predictions": {
+    "normal": {
+      "type": "normal",
+      "confidence": 1.0,
+      "sample_size": 8
+    },
+    "instavel": {
+      "type": "intermittent",
+      "confidence": 1.0,
+      "sample_size": 10
+    },
+    "carga": {
+      "type": "continuous",
+      "confidence": 1.0,
+      "sample_size": 7
+    }
+  },
+  "evidence_logs": [
+    {
+      "id": 664,
+      "service": "carga",
+      "source_sequence": 101,
+      "timestamp": "2026-10-27T23:04:18.433203+00:00",
+      "event": "service_response",
+      "request_id": "4db10f90-ec0e-4926-baaf-2dcec7943bea",
+      "status": 503
+    },
+    {
+      "id": 643,
+      "service": "instavel",
+      "source_sequence": 149,
+      "timestamp": "2026-10-27T23:04:15.167222+00:00",
+      "event": "backend_response",
+      "request_id": "3050c8a2-79d4-4df3-9fc1-8f2a32cf5152",
+      "status": 503
+    }
+  ]
+}

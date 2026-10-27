@@ -1,0 +1,16 @@
+{
+  "episode_started_at": "2026-10-27T23:19:19.194794+00:00",
+  "faults": [
+    {
+      "root_service": "instavel",
+      "fault_type": "intermittent",
+      "error_name": "IntermittentBackendError"
+    },
+    {
+      "root_service": "carga",
+      "fault_type": "continuous",
+      "error_name": "DependencyTimeoutError"
+    }
+  ],
+  "finished_at": "2026-10-27T23:19:37.563765+00:00"
+}

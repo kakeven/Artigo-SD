@@ -1,0 +1,14 @@
+{
+  "episode_started_at": "2026-10-27T23:08:11.638265+00:00",
+  "faults": [
+    {
+      "root_service": "instavel",
+      "fault_type": "intermittent"
+    },
+    {
+      "root_service": "carga",
+      "fault_type": "continuous"
+    }
+  ],
+  "finished_at": "2026-10-27T23:08:22.096828+00:00"
+}

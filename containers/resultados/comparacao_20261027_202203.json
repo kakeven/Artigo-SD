@@ -1,0 +1,316 @@
+{
+  "training": [
+    {
+      "results": {
+        "normal": {
+          "started_at": "2026-10-27T23:20:12.769230+00:00",
+          "requests": 8,
+          "direct_errors": 0,
+          "direct_successes": 8,
+          "repaired_successes": 0,
+          "last_response": {
+            "status": 200,
+            "served_by": "normal",
+            "fault_active": null
+          }
+        },
+        "instavel": {
+          "started_at": "2026-10-27T23:20:14.033388+00:00",
+          "requests": 27,
+          "direct_errors": 4,
+          "direct_successes": 23,
+          "repaired_successes": 19,
+          "last_response": {
+            "status": 200,
+            "served_by": "instavel",
+            "fault_active": false
+          }
+        },
+        "carga": {
+          "started_at": "2026-10-27T23:20:17.744019+00:00",
+          "requests": 27,
+          "direct_errors": 11,
+          "direct_successes": 16,
+          "repaired_successes": 16,
+          "last_response": {
+            "status": 200,
+            "served_by": "carga",
+            "fault_active": false
+          }
+        }
+      },
+      "agent_decisions": [
+        {
+          "id": 56,
+          "timestamp": "2026-10-27T23:20:19.604039+00:00",
+          "target": "carga",
+          "predicted_type": "continuous",
+          "confidence": 1.0,
+          "action": "reset_overload",
+          "verified": 1,
+          "evidence_request_id": "b5bfecef-a57e-417c-8ba6-87a6308ba81a",
+          "error_name": "OverloadError",
+          "strategy": "rf_fallback"
+        },
+        {
+          "id": 55,
+          "timestamp": "2026-10-27T23:20:15.325066+00:00",
+          "target": "instavel",
+          "predicted_type": "intermittent",
+          "confidence": 1.0,
+          "action": "disable_simulated_fault",
+          "verified": 1,
+          "evidence_request_id": "789767f1-e218-44cf-b5f1-5b20a3b26761",
+          "error_name": "IntermittentBackendError",
+          "strategy": "rf_fallback"
+        }
+      ],
+      "root_cause_correct": 2,
+      "root_cause_total": 2,
+      "strategy": "rf",
+      "carga_mode": "overload",
+      "ground_truth_file": "G:\\Artigo SD\\containers\\resultados\\ground_truth_20261027_202023.json"
+    },
+    {
+      "results": {
+        "normal": {
+          "started_at": "2026-10-27T23:20:23.152462+00:00",
+          "requests": 8,
+          "direct_errors": 0,
+          "direct_successes": 8,
+          "repaired_successes": 0,
+          "last_response": {
+            "status": 200,
+            "served_by": "normal",
+            "fault_active": null
+          }
+        },
+        "instavel": {
+          "started_at": "2026-10-27T23:20:24.510230+00:00",
+          "requests": 27,
+          "direct_errors": 4,
+          "direct_successes": 23,
+          "repaired_successes": 19,
+          "last_response": {
+            "status": 200,
+            "served_by": "instavel",
+            "fault_active": false
+          }
+        },
+        "carga": {
+          "started_at": "2026-10-27T23:20:28.294133+00:00",
+          "requests": 27,
+          "direct_errors": 12,
+          "direct_successes": 15,
+          "repaired_successes": 15,
+          "last_response": {
+            "status": 200,
+            "served_by": "carga",
+            "fault_active": false
+          }
+        }
+      },
+      "agent_decisions": [
+        {
+          "id": 58,
+          "timestamp": "2026-10-27T23:20:30.205123+00:00",
+          "target": "carga",
+          "predicted_type": "continuous",
+          "confidence": 1.0,
+          "action": "reset_overload",
+          "verified": 1,
+          "evidence_request_id": "f680be60-1e65-4499-a2d8-66da993f7525",
+          "error_name": "OverloadError",
+          "strategy": "rf_fallback"
+        },
+        {
+          "id": 57,
+          "timestamp": "2026-10-27T23:20:25.761198+00:00",
+          "target": "instavel",
+          "predicted_type": "intermittent",
+          "confidence": 1.0,
+          "action": "disable_simulated_fault",
+          "verified": 1,
+          "evidence_request_id": "f43bfe38-ec0c-495b-9a37-def0c149f695",
+          "error_name": "IntermittentBackendError",
+          "strategy": "rf_fallback"
+        }
+      ],
+      "root_cause_correct": 2,
+      "root_cause_total": 2,
+      "strategy": "rf",
+      "carga_mode": "overload",
+      "ground_truth_file": "G:\\Artigo SD\\containers\\resultados\\ground_truth_20261027_202033.json"
+    },
+    {
+      "results": {
+        "normal": {
+          "started_at": "2026-10-27T23:20:33.670782+00:00",
+          "requests": 8,
+          "direct_errors": 0,
+          "direct_successes": 8,
+          "repaired_successes": 0,
+          "last_response": {
+            "status": 200,
+            "served_by": "normal",
+            "fault_active": null
+          }
+        },
+        "instavel": {
+          "started_at": "2026-10-27T23:20:34.974575+00:00",
+          "requests": 27,
+          "direct_errors": 4,
+          "direct_successes": 23,
+          "repaired_successes": 18,
+          "last_response": {
+            "status": 200,
+            "served_by": "instavel",
+            "fault_active": false
+          }
+        },
+        "carga": {
+          "started_at": "2026-10-27T23:20:38.623481+00:00",
+          "requests": 27,
+          "direct_errors": 6,
+          "direct_successes": 21,
+          "repaired_successes": 21,
+          "last_response": {
+            "status": 200,
+            "served_by": "carga",
+            "fault_active": false
+          }
+        }
+      },
+      "agent_decisions": [
+        {
+          "id": 60,
+          "timestamp": "2026-10-27T23:20:39.514824+00:00",
+          "target": "carga",
+          "predicted_type": "continuous",
+          "confidence": 1.0,
+          "action": "reset_overload",
+          "verified": 1,
+          "evidence_request_id": "89327207-1f2d-4436-844d-6cf65c198aee",
+          "error_name": "OverloadError",
+          "strategy": "rf_fallback"
+        },
+        {
+          "id": 59,
+          "timestamp": "2026-10-27T23:20:36.404870+00:00",
+          "target": "instavel",
+          "predicted_type": "intermittent",
+          "confidence": 1.0,
+          "action": "disable_simulated_fault",
+          "verified": 1,
+          "evidence_request_id": "e2e77ce7-375d-4a2c-a07f-38b98da329cb",
+          "error_name": "IntermittentBackendError",
+          "strategy": "rf_fallback"
+        }
+      ],
+      "root_cause_correct": 2,
+      "root_cause_total": 2,
+      "strategy": "rf",
+      "carga_mode": "overload",
+      "ground_truth_file": "G:\\Artigo SD\\containers\\resultados\\ground_truth_20261027_202043.json"
+    }
+  ],
+  "trained_memory": [
+    {
+      "target": "carga",
+      "error_name": "OverloadError",
+      "action": "reset_overload",
+      "verified_count": 3
+    },
+    {
+      "target": "instavel",
+      "error_name": "IntermittentBackendError",
+      "action": "disable_simulated_fault",
+      "verified_count": 3
+    }
+  ],
+  "cases": [
+    {
+      "strategy": "rf",
+      "cause": "overload",
+      "error_name": "OverloadError",
+      "decision_source": "rf_fallback",
+      "chosen_action": "reset_overload",
+      "correct_root_cause": true,
+      "repair_verified": true,
+      "carga_503": 7,
+      "carga_200_after_repair": 20
+    },
+    {
+      "strategy": "rf",
+      "cause": "dependency_timeout",
+      "error_name": "DependencyTimeoutError",
+      "decision_source": "rf_fallback",
+      "chosen_action": "reset_overload",
+      "correct_root_cause": false,
+      "repair_verified": false,
+      "carga_503": 27,
+      "carga_200_after_repair": 0
+    },
+    {
+      "strategy": "memory",
+      "cause": "overload",
+      "error_name": "OverloadError",
+      "decision_source": "memory",
+      "chosen_action": "reset_overload",
+      "correct_root_cause": true,
+      "repair_verified": true,
+      "carga_503": 9,
+      "carga_200_after_repair": 18
+    },
+    {
+      "strategy": "memory",
+      "cause": "dependency_timeout",
+      "error_name": "DependencyTimeoutError",
+      "decision_source": "rf_fallback",
+      "chosen_action": "reset_overload",
+      "correct_root_cause": false,
+      "repair_verified": false,
+      "carga_503": 27,
+      "carga_200_after_repair": 0
+    },
+    {
+      "strategy": "qwen_memory",
+      "cause": "overload",
+      "error_name": "OverloadError",
+      "decision_source": "memory",
+      "chosen_action": "reset_overload",
+      "correct_root_cause": true,
+      "repair_verified": true,
+      "carga_503": 10,
+      "carga_200_after_repair": 17
+    },
+    {
+      "strategy": "qwen_memory",
+      "cause": "dependency_timeout",
+      "error_name": "DependencyTimeoutError",
+      "decision_source": "qwen",
+      "chosen_action": "restore_dependency",
+      "correct_root_cause": true,
+      "repair_verified": true,
+      "carga_503": 22,
+      "carga_200_after_repair": 5
+    }
+  ],
+  "summary": {
+    "rf": {
+      "cases": 2,
+      "root_cause_accuracy": 0.5,
+      "repair_success_rate": 0.5
+    },
+    "memory": {
+      "cases": 2,
+      "root_cause_accuracy": 0.5,
+      "repair_success_rate": 0.5
+    },
+    "qwen_memory": {
+      "cases": 2,
+      "root_cause_accuracy": 1.0,
+      "repair_success_rate": 1.0
+    }
+  }
+}
