@@ -11,7 +11,7 @@ import unittest
 import httpx
 from fastapi import HTTPException
 
-from relatorio_loja import render_html
+from relatorio_loja import render_html, render_comparison_html
 
 
 ROOT = Path(__file__).resolve().parent
@@ -111,6 +111,43 @@ class ShopFlowTest(unittest.TestCase):
         self.assertEqual(json.loads(response.body)["status"], "pending_reconciliation")
         self.assertEqual(self.orders.shop_stats()["pending_reconciliation"], 1)
 
+    def test_new_inventory_causes_require_matching_repair(self):
+        for mode, action in (("dependency_unavailable", "restore_inventory_dependency"),
+                             ("reservation_locked", "release_reservation_lock")):
+            with self.subTest(mode=mode):
+                self.inventory.set_fault(self.inventory.FaultAction(enabled=True, mode=mode, reason="test_setup"),
+                                         "Bearer test-token")
+                failed = self.place_order()
+                self.assertEqual(failed.status_code, 503)
+                self.assertEqual(json.loads(failed.body)["status"], "inventory_unavailable")
+                with self.assertRaises(HTTPException) as caught:
+                    self.inventory.repair(self.inventory.RepairAction(action="disable_simulated_fault", reason="wrong_fix"),
+                                          "Bearer test-token")
+                self.assertEqual(caught.exception.status_code, 409)
+                self.inventory.repair(self.inventory.RepairAction(action=action, reason="correct_fix"), "Bearer test-token")
+                self.assertFalse(self.inventory.fault_state()["enabled"])
+
+    def test_circuit_open_requires_its_own_repair(self):
+        self.inventory.set_fault(self.inventory.FaultAction(enabled=False, reason="test_setup"), "Bearer test-token")
+        self.payment.set_fault(self.payment.FaultAction(enabled=True, mode="circuit_open", reason="test_setup"),
+                               "Bearer test-token")
+        self.assertEqual(self.place_order().status_code, 503)
+        with self.assertRaises(HTTPException) as caught:
+            self.payment.repair(self.payment.RepairAction(action="reset_overload", reason="wrong_fix"), "Bearer test-token")
+        self.assertEqual(caught.exception.status_code, 409)
+        self.payment.repair(self.payment.RepairAction(action="reset_circuit_breaker", reason="correct_fix"),
+                            "Bearer test-token")
+        self.assertEqual(self.place_order().status_code, 201)
+
+    def test_inventory_reset_restores_stock_between_episodes(self):
+        self.inventory.set_fault(self.inventory.FaultAction(enabled=False, reason="test_setup"), "Bearer test-token")
+        self.payment.set_fault(self.payment.FaultAction(enabled=False, reason="test_setup"), "Bearer test-token")
+        self.assertEqual(self.place_order().status_code, 201)
+        self.assertEqual(self.inventory.inventory_state()["reservations"], 1)
+        restored = self.inventory.reset_inventory("Bearer test-token")
+        self.assertEqual(restored["available"]["camiseta-basica"]["M"], 30)
+        self.assertEqual(restored["reservations"], 0)
+
 
 class ShopReportTest(unittest.TestCase):
     def test_report_explains_orders_and_escapes_identifiers(self):
@@ -125,6 +162,23 @@ class ShopReportTest(unittest.TestCase):
         self.assertIn("Estoque reservado e pagamento autorizado", html)
         self.assertIn("&lt;script&gt;", html)
         self.assertNotIn("<script>alert(1)</script>", html)
+
+    def test_comparison_report_keeps_episodes_separate_without_ids(self):
+        episodes = [{"strategy": strategy, "cause": cause, "target": "carga",
+                     "episode_started_at": "2026-10-28T19:00:00+00:00",
+                     "orders": [{"number": number, "status": "confirmed", "request_id": "secret-id"}
+                                for number in range(1, 5)],
+                     "decisions": [{"target": "carga", "verified": True, "action": "reset_overload",
+                                    "strategy": "rf_fallback", "timestamp": "2026-10-28T19:00:01+00:00"}]}
+                    for strategy in ("rf", "memory", "qwen_memory")
+                    for cause in ("overload", "dependency_timeout", "dependency_unavailable",
+                                  "reservation_locked", "circuit_open")]
+        html = render_comparison_html({"strategies": ["rf", "memory", "qwen_memory"],
+                                       "causes": ["overload", "dependency_timeout", "dependency_unavailable",
+                                                  "reservation_locked", "circuit_open"], "episodes": episodes})
+        self.assertEqual(html.count('class="case"'), 15)
+        self.assertIn("Reserva de estoque bloqueada", html)
+        self.assertNotIn("secret-id", html)
 
 
 if __name__ == "__main__":

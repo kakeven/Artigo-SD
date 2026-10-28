@@ -14,8 +14,10 @@ ROOT = Path(__file__).resolve().parent
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--sem-build", action="store_true", help="Reutiliza as imagens Docker existentes")
-    parser.add_argument("--strategy", choices=("rf", "memory", "qwen_memory"), default="rf")
-    parser.add_argument("--cause", choices=("overload", "dependency_timeout"), default="overload")
+    parser.add_argument("--strategy", choices=("rf", "memory", "qwen_memory"),
+                        help="Executa somente uma estrategia; por padrao compara as tres")
+    parser.add_argument("--cause", choices=("overload", "dependency_timeout", "dependency_unavailable",
+                                             "reservation_locked", "circuit_open"), default="overload")
     parser.add_argument("--orders", type=int, default=22, help="Pedidos durante o incidente; outros 3 verificam o resultado")
     args = parser.parse_args()
     if not 6 <= args.orders <= 40:
@@ -29,10 +31,10 @@ def main() -> None:
     subprocess.run(command + list(SERVICES), cwd=ROOT, check=True)
     wait_for_services()
     print("Executando pedidos automaticos e aguardando o agente...", flush=True)
-    subprocess.run([
-        sys.executable, str(ROOT / "demo_loja.py"),
-        "--strategy", args.strategy, "--cause", args.cause, "--orders", str(args.orders),
-    ], cwd=ROOT, check=True)
+    command = [sys.executable, str(ROOT / ("demo_loja.py" if args.strategy else "comparar_loja.py"))]
+    if args.strategy:
+        command.extend(["--strategy", args.strategy, "--cause", args.cause])
+    subprocess.run(command + ["--orders", str(args.orders)], cwd=ROOT, check=True)
 
 
 if __name__ == "__main__":

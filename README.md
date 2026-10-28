@@ -33,9 +33,15 @@ Para preparar os cinco contêineres, executar automaticamente os pedidos e gerar
 python containers/executar_loja.py
 ```
 
-O script cria 22 pedidos durante as falhas, aguarda o agente e envia mais três pedidos para conferir o resultado. Ele salva os dados em `containers/resultados/loja_*.json` e gera um **relatório visual HTML** com resumo, sequência dos pedidos, narrativa do incidente, ações do agente e explicação de cada resultado. Abra o arquivo `.html` indicado no terminal em um navegador de PC. Use `--sem-build` para reutilizar as imagens Docker; `--strategy rf|memory|qwen_memory` e `--cause overload|dependency_timeout` permitem comparar decisões. Se os contêineres já estiverem ativos, `python containers/demo_loja.py` executa somente o episódio. Pedidos individuais podem retornar 503 enquanto a falha estiver ativa; após um reparo verificado, novas tentativas podem ser confirmadas. Para consultar um pedido, use `GET http://127.0.0.1:8001/orders/{order_id}`.
+Por padrão, o comando prepara uma memória inicial com três reparos verificados de sobrecarga e executa **15 episódios independentes**: cinco causas para cada uma das estratégias `rf`, `memory` e `qwen_memory`. Em cada episódio, envia 22 pedidos durante a falha, aguarda a decisão do agente e envia três pedidos finais de verificação. O estoque e a memória inicial são restaurados antes de cada episódio. O HTML em `containers/resultados/loja_comparacao_*.html` mostra um quadro de resultados e, separadamente para cada estratégia e causa, a sequência dos pedidos, a ação tomada e a verificação. Abra o arquivo indicado no terminal em um navegador de PC. O JSON correspondente preserva os dados completos.
 
-Veja um [exemplo de relatório da loja de roupas](docs/exemplos/loja_roupas.html), acompanhado dos [dados da execução](docs/exemplos/loja_roupas.json). Os relatórios de novas execuções são temporários e ficam em `containers/resultados/`.
+As cinco causas são: `overload` (sobrecarga no pagamento), `dependency_timeout` (dependência do pagamento), `dependency_unavailable` (dependência do estoque), `reservation_locked` (bloqueio simulado das reservas) e `circuit_open` (circuito do pagamento preso em aberto). Todas são falhas simuladas e têm uma ação de reparo específica. O Random Forest detecta o padrão da falha em todas as estratégias; o método de escolher o reparo é que muda. Cinco causas diferentes não equivalem a cinco repetições estatísticas da mesma causa.
+
+Use `--sem-build` para reutilizar as imagens Docker. Para executar somente um episódio, acrescente `--strategy rf|memory|qwen_memory` e, opcionalmente, `--cause` com uma das cinco causas. Se os contêineres já estiverem ativos, `python containers/comparar_loja.py` executa diretamente a comparação. Pedidos individuais podem retornar 503 enquanto a falha estiver ativa. Para consultar um pedido, use `GET http://127.0.0.1:8001/orders/{order_id}`.
+
+Veja o [relatório comparativo de 15 episódios](docs/exemplos/comparacao_loja.html) e seus [dados completos](docs/exemplos/comparacao_loja.json). Há também um [exemplo anterior de um único episódio](docs/exemplos/loja_roupas.html). Os relatórios de novas execuções são temporários e ficam em `containers/resultados/`.
+
+O [funcionamento de cada estratégia](docs/funcionamento_das_estrategias.md) está explicado em um documento separado, com exemplos das decisões e limites da comparação.
 
 Para transformar um JSON anterior em relatório visual:
 
@@ -62,11 +68,11 @@ Depois da detecção, é possível escolher três estratégias de reparo:
 
 | Estratégia | Decisão de reparo |
 | --- | --- |
-| `rf` | Escolhe a ação padrão do serviço a partir do padrão de status. É a referência sem memória. |
-| `memory` | Reutiliza uma ação para o mesmo serviço e nome de erro após **três reparos verificados**; sem caso suficiente, usa a ação padrão. |
+| `rf` | Usa o Random Forest para detectar e escolhe a ação padrão do serviço. É a referência sem memória. |
+| `memory` | Usa o mesmo Random Forest e reutiliza uma ação para o mesmo serviço e nome de erro após **três reparos verificados**; sem caso suficiente, usa a ação padrão. |
 | `qwen_memory` | Usa a mesma memória. Para erro ainda desconhecido, consulta o Qwen2.5 1.5B local com logs resumidos e código-fonte montado somente para leitura. Aceita apenas uma ação da lista permitida; se o modelo estiver indisponível ou responder algo inválido, registra `no_action`. |
 
-No serviço `carga`, `OverloadError` e `DependencyTimeoutError` retornam o **mesmo HTTP 503**, mas exigem `reset_overload` e `restore_dependency`, respectivamente. Uma ação errada mantém a falha ativa. O agente confirma a recuperação no próprio serviço antes de marcar o reparo como verificado e só então aumenta a contagem na memória. As ações usam APIs protegidas por token. Esta é uma prova de conceito com falhas injetadas, não um agente capaz de corrigir bugs arbitrários.
+As cinco causas retornam HTTP 503, mas exigem ações diferentes. Uma ação errada mantém a falha ativa. O agente confirma a recuperação no próprio serviço antes de marcar o reparo como verificado e só então aumenta a contagem na memória. As ações usam APIs protegidas por token. Esta é uma prova de conceito com falhas injetadas, não um agente capaz de corrigir bugs arbitrários.
 
 ### Executar o ciclo completo
 

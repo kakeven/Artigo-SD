@@ -125,6 +125,15 @@ class LogRepository:
             self.connection.execute("DELETE FROM incident_memory")
             self.connection.commit()
 
+    def restore_memory(self, cases: list[dict]) -> None:
+        with self.lock:
+            with self.connection:
+                self.connection.execute("DELETE FROM incident_memory")
+                self.connection.executemany(
+                    "INSERT INTO incident_memory(target,error_name,action,verified_count) VALUES(?,?,?,?)",
+                    [(case["target"], case["error_name"], case["action"], case["verified_count"]) for case in cases],
+                )
+
     def add_decision(self, timestamp: str, target: str, predicted_type: str, confidence: float,
                      action: str, verified: bool, evidence_request_id: str,
                      error_name: str = "", strategy: str = "rf") -> None:

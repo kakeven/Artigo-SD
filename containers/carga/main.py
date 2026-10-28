@@ -19,8 +19,10 @@ fault_mode = "overload"
 control_token = os.getenv("AGENT_CONTROL_TOKEN", "")
 charges = {}
 
-ERROR_NAMES = {"overload": "OverloadError", "dependency_timeout": "DependencyTimeoutError"}
-REPAIR_ACTIONS = {"overload": "reset_overload", "dependency_timeout": "restore_dependency"}
+ERROR_NAMES = {"overload": "OverloadError", "dependency_timeout": "DependencyTimeoutError",
+               "circuit_open": "CircuitOpenError"}
+REPAIR_ACTIONS = {"overload": "reset_overload", "dependency_timeout": "restore_dependency",
+                  "circuit_open": "reset_circuit_breaker"}
 
 
 class FaultAction(BaseModel):

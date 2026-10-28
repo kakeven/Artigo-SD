@@ -20,10 +20,19 @@ STATUS = {
 }
 TARGET = {"instavel": "Estoque", "carga": "Pagamento", "normal": "Pedidos"}
 PATTERN = {"intermittent": "Falha intermitente", "continuous": "Falha contínua", "normal": "Operação normal"}
-ACTION = {"disable_simulated_fault": "Desativar a falha do estoque", "reset_overload": "Restabelecer o pagamento após sobrecarga",
-          "restore_dependency": "Restabelecer a dependência do pagamento", "no_action": "Nenhuma ação"}
-STRATEGY = {"rf": "Regra padrão", "memory": "Memória de casos verificados", "qwen_memory": "Qwen com memória"}
-CAUSE = {"overload": "Sobrecarga no pagamento", "dependency_timeout": "Tempo esgotado na dependência do pagamento"}
+ACTION = {"disable_simulated_fault": "Desativar a falha intermitente do estoque",
+          "restore_inventory_dependency": "Restabelecer a dependência do estoque",
+          "release_reservation_lock": "Liberar o bloqueio simulado de reservas",
+          "reset_overload": "Restabelecer o pagamento após sobrecarga",
+          "restore_dependency": "Restabelecer a dependência do pagamento",
+          "reset_circuit_breaker": "Reiniciar o circuito do pagamento", "no_action": "Nenhuma ação"}
+STRATEGY = {"rf": "Random Forest", "memory": "Random Forest com memória", "qwen_memory": "Qwen com memória"}
+DECISION_SOURCE = {"rf_fallback": "regra padrão", "memory": "memória", "qwen": "Qwen",
+                   "qwen_unavailable_or_invalid": "Qwen indisponível ou resposta inválida"}
+CAUSE = {"overload": "Sobrecarga no pagamento", "dependency_timeout": "Tempo esgotado no pagamento",
+         "dependency_unavailable": "Dependência do estoque indisponível",
+         "reservation_locked": "Reserva de estoque bloqueada",
+         "circuit_open": "Circuito do pagamento preso em aberto"}
 PRODUCT = {"camiseta-basica": "Camiseta básica", "moletom-capuz": "Moletom com capuz"}
 
 
@@ -47,8 +56,10 @@ def render_html(report: dict) -> str:
     confirmed = counts["confirmed"]
     pending = counts["compensation_pending"] + counts["pending_reconciliation"] + counts["pending"]
     failed = len(orders) - confirmed - pending
-    both_verified = {item.get("target") for item in decisions if item.get("verified")} >= {"instavel", "carga"}
-    recovered = both_verified and len(orders) >= 3 and all(item.get("status") == "confirmed" for item in orders[-3:])
+    target = report.get("target")
+    verified = (any(item.get("target") == target and item.get("verified") for item in decisions) if target
+                else {item.get("target") for item in decisions if item.get("verified")} >= {"instavel", "carga"})
+    recovered = verified and len(orders) >= 3 and all(item.get("status") == "confirmed" for item in orders[-3:])
     verdict = ("Os serviços voltaram a confirmar pedidos após o reparo." if recovered
                else "O episódio terminou com pedidos que ainda precisam de atenção." if pending
                else "O episódio terminou sem confirmar a recuperação completa dos pedidos.")
@@ -236,10 +247,146 @@ def render_html(report: dict) -> str:
     )
 
 
+def render_comparison_html(report: dict) -> str:
+    """Mostra os 15 episodios separadamente, com um quadro comparativo no inicio."""
+    episodes = report.get("episodes", [])
+    strategies = report.get("strategies", ["rf", "memory", "qwen_memory"])
+    causes = report.get("causes", list(CAUSE))
+    by_pair = {(item.get("strategy"), item.get("cause")): item for item in episodes}
+
+    def outcome(episode: dict) -> tuple[bool, int, int, str]:
+        orders = episode.get("orders", [])
+        target = episode.get("target")
+        decision = next((item for item in episode.get("decisions", [])
+                         if item.get("target") == target and item.get("verified")), None)
+        check = orders[-3:] if len(orders) >= 3 else []
+        recovered = bool(decision and len(check) == 3 and all(item.get("status") == "confirmed" for item in check))
+        confirmed = sum(item.get("status") == "confirmed" for item in orders)
+        delay = "—"
+        if decision:
+            try:
+                seconds = (datetime.fromisoformat(decision["timestamp"]) -
+                           datetime.fromisoformat(episode["episode_started_at"])).total_seconds()
+                delay = f"{max(0, seconds):.1f} s"
+            except (ValueError, TypeError, KeyError):
+                pass
+        return recovered, confirmed, len(orders), delay
+
+    matrix_rows = []
+    for cause in causes:
+        cells = []
+        for strategy in strategies:
+            episode = by_pair.get((strategy, cause))
+            if episode is None:
+                cells.append("<td>Não executado</td>")
+                continue
+            recovered, confirmed, total, delay = outcome(episode)
+            label = "Reparado" if recovered else "Não reparado"
+            css = "good" if recovered else "bad"
+            cells.append(f'<td><strong class="{css}">{label}</strong><small>{confirmed}/{total} pedidos · {delay}</small></td>')
+        matrix_rows.append(f"<tr><th scope='row'>{safe(CAUSE.get(cause, cause))}</th>{''.join(cells)}</tr>")
+
+    strategy_sections = []
+    for strategy in strategies:
+        own = [by_pair[(strategy, cause)] for cause in causes if (strategy, cause) in by_pair]
+        successes = sum(outcome(item)[0] for item in own)
+        cases = []
+        for episode in own:
+            cause = episode.get("cause", "")
+            target = episode.get("target")
+            orders = episode.get("orders", [])
+            decisions = sorted((item for item in episode.get("decisions", []) if item.get("target") == target),
+                               key=lambda item: item.get("timestamp", ""))
+            recovered, confirmed, total, delay = outcome(episode)
+            incident = orders[:-3] if len(orders) >= 3 else orders
+            incident_ok = sum(item.get("status") == "confirmed" for item in incident)
+            checks_ok = sum(item.get("status") == "confirmed" for item in orders[-3:]) if len(orders) >= 3 else 0
+            action_text = "; ".join(
+                f"{ACTION.get(item.get('action'), item.get('action', 'Nenhuma ação'))} "
+                f"(origem: {DECISION_SOURCE.get(item.get('strategy'), item.get('strategy', 'desconhecida'))}; "
+                f"{'verificado' if item.get('verified') else 'sem verificação positiva'})"
+                for item in decisions
+            ) or "O agente não registrou uma decisão para esta causa."
+            action_time = None
+            if decisions:
+                try:
+                    action_time = datetime.fromisoformat(decisions[0]["timestamp"])
+                except (KeyError, ValueError, TypeError):
+                    pass
+            marks = []
+            action_marked = False
+            for index, item in enumerate(orders, 1):
+                try:
+                    order_time = datetime.fromisoformat(item["timestamp"])
+                except (KeyError, ValueError, TypeError):
+                    order_time = None
+                if action_time and order_time and not action_marked and order_time >= action_time:
+                    marks.append('<span class="action-marker" title="Primeira ação do agente">Ação do agente</span>')
+                    action_marked = True
+                marks.append(
+                    f'<span class="mark {"good" if item.get("status") == "confirmed" else "pending" if item.get("status") in ("pending", "pending_reconciliation", "compensation_pending") else "bad"}" '
+                    f'title="Pedido {safe(item.get("number", index))}: {safe(STATUS.get(item.get("status"), ("Outro resultado", "", ""))[0])}">'
+                    f'{safe(item.get("number", index))}</span>'
+                )
+            if action_time and not action_marked:
+                marks.append('<span class="action-marker" title="Primeira ação do agente">Ação do agente</span>')
+            order_marks = "".join(marks)
+            badge = "Recuperado" if recovered else "Sem recuperação confirmada"
+            cases.append(
+                f'<article class="case" id="{safe(strategy)}-{safe(cause)}">'
+                f'<div class="case-head"><h3>{safe(CAUSE.get(cause, cause))}</h3><span class="badge {"good" if recovered else "bad"}">{badge}</span></div>'
+                f'<p class="episode-meta">{safe(TARGET.get(target, target))} · {confirmed}/{total} pedidos confirmados · tempo até o reparo: {delay}</p>'
+                f'<div class="orders" aria-label="Pedidos na ordem em que ocorreram">{order_marks}</div>'
+                f'<p class="episode-note">Primeiros {len(incident)} pedidos: {incident_ok} confirmados. '
+                f'Pedidos finais de verificação: {checks_ok}/3 confirmados.</p>'
+                f'<p><strong>O que aconteceu:</strong> a falha foi ativada no serviço de {safe(TARGET.get(target, target)).lower()}; '
+                f'os pedidos acima seguiram na ordem indicada. <strong>Ação do agente:</strong> {safe(action_text)}. '
+                f'<strong>Resultado:</strong> {"o reparo foi confirmado no serviço e nos três pedidos finais" if recovered else "a recuperação completa não foi confirmada"}.</p>'
+                '</article>'
+            )
+        strategy_sections.append(
+            f'<section class="strategy" id="{safe(strategy)}"><div class="strategy-head">'
+            f'<h2>{safe(STRATEGY.get(strategy, strategy))}</h2><p>{successes}/{len(own)} causas recuperadas</p></div>'
+            f'{"".join(cases)}</section>'
+        )
+
+    table_head = "".join(f"<th scope='col'>{safe(STRATEGY.get(item, item))}</th>" for item in strategies)
+    return Template("""<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comparação das estratégias — loja de roupas</title><style>
+:root{--ink:#1b3141;--muted:#526675;--line:#ced9df;--paper:#f5f8f9;--good:#17694c;--bad:#a33e3e;--pending:#986912}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.48 "Segoe UI",Arial,sans-serif}
+main{max-width:1250px;margin:auto;padding:42px 36px 90px}h1{font-size:2.8rem;line-height:1.08;letter-spacing:-.035em;margin:0 0 16px}
+h2{font-size:1.65rem;margin:0}h3{font-size:1.14rem;margin:0}p{max-width:82ch}.intro{font-size:1.12rem;color:var(--muted);margin:0 0 24px}
+.method{padding:16px 22px;border-left:5px solid #327b85;background:#e7f0f1;max-width:none;margin:26px 0 36px}
+.summary{border-top:2px solid var(--ink);padding-top:18px;margin-bottom:50px}.summary h2{margin-bottom:14px}
+table{width:100%;border-collapse:collapse;background:white}th,td{text-align:left;padding:13px 15px;border-bottom:1px solid var(--line);vertical-align:top}
+thead th{background:#dce8ec}tbody th{width:27%;font-weight:600}td small{display:block;color:var(--muted);margin-top:3px}
+.good{color:var(--good)}.bad{color:var(--bad)}.pending{color:var(--pending)}
+.strategy{margin-top:54px}.strategy-head{display:flex;justify-content:space-between;align-items:baseline;border-bottom:3px solid var(--ink);padding-bottom:8px}
+.strategy-head p{margin:0;font-weight:700;font-variant-numeric:tabular-nums}.case{background:white;border-bottom:1px solid var(--line);padding:22px 26px}
+.case-head{display:flex;justify-content:space-between;gap:20px;align-items:center}.badge{font-size:.84rem;font-weight:700;white-space:nowrap}
+.episode-meta{color:var(--muted);font-size:.9rem;margin:5px 0 15px}.orders{display:flex;flex-wrap:wrap;gap:5px;margin:15px 0 8px}
+.mark{width:27px;height:27px;border-radius:3px;display:inline-grid;place-items:center;font-size:.75rem;font-weight:700;color:white}
+.mark.good{background:var(--good)}.mark.bad{background:var(--bad)}.mark.pending{background:var(--pending)}
+.action-marker{border-left:3px solid #327b85;padding:4px 7px;color:#24616b;font-size:.75rem;font-weight:700;align-self:center;white-space:nowrap}
+.episode-note{color:var(--muted);font-size:.9rem;margin:0 0 13px}.case p:last-child{margin-bottom:0}
+footer{border-top:1px solid var(--line);padding-top:18px;color:var(--muted);font-size:.9rem;margin-top:54px}
+@media print{body{background:white}main{padding:0}.case{break-inside:avoid}.strategy{break-before:page}}
+</style></head><body><main><header><h1>Como cada estratégia lidou com as falhas</h1>
+<p class="intro">Cinco causas na loja de roupas, executadas separadamente com três formas de escolher o reparo.</p>
+<p class="method">O Random Forest detecta o padrão da falha nas três versões. O que muda é a escolha do reparo: regra padrão, memória de reparos verificados ou memória seguida de consulta ao Qwen. Cada episódio recebeu a mesma memória inicial e o estoque foi reiniciado. Verde: pedido confirmado; vermelho: falha; amarelo: pendente de conferência.</p></header>
+<section class="summary"><h2>Resultado por causa</h2><table><thead><tr><th scope="col">Causa simulada</th>$table_head</tr></thead><tbody>$matrix</tbody></table></section>
+$sections
+<footer>Comparação de laboratório com pagamento fictício. Cinco causas distintas não substituem repetições estatísticas de cada causa. O Qwen pode não ser consultado quando a memória já conhece o reparo.</footer>
+</main></body></html>""").substitute(table_head=table_head, matrix="".join(matrix_rows), sections="".join(strategy_sections))
+
+
 def write_report(source: Path) -> Path:
     report = json.loads(source.read_text(encoding="utf-8"))
     output = source.with_suffix(".html")
-    output.write_text(render_html(report), encoding="utf-8")
+    output.write_text(render_comparison_html(report) if report.get("kind") == "shop_comparison"
+                      else render_html(report), encoding="utf-8")
     return output
 
 

@@ -9,8 +9,8 @@ import httpx
 
 
 ALLOWED_ACTIONS = {
-    "instavel": {"disable_simulated_fault"},
-    "carga": {"reset_overload", "restore_dependency"},
+    "instavel": {"disable_simulated_fault", "restore_inventory_dependency", "release_reservation_lock"},
+    "carga": {"reset_overload", "restore_dependency", "reset_circuit_breaker"},
 }
 SOURCE_FILES = {
     "instavel": Path("/source/instavel/main.py"),

@@ -19,16 +19,28 @@ eventos = deque(maxlen=2000)
 event_sequence = 0
 auto_counter = 0
 auto_fault_enabled = True
+fault_mode = "intermittent"
+ERROR_NAMES = {"intermittent": "IntermittentBackendError", "dependency_unavailable": "InventoryDependencyError",
+               "reservation_locked": "ReservationLockError"}
+REPAIR_ACTIONS = {"intermittent": "disable_simulated_fault", "dependency_unavailable": "restore_inventory_dependency",
+                  "reservation_locked": "release_reservation_lock"}
 control_token = os.getenv("AGENT_CONTROL_TOKEN", "")
 inventory = {
     "camiseta-basica": {"P": 30, "M": 30, "G": 30},
     "moletom-capuz": {"P": 20, "M": 20, "G": 20},
 }
+INITIAL_INVENTORY = {sku: dict(sizes) for sku, sizes in inventory.items()}
 reservations = {}
 
 
 class FaultAction(BaseModel):
     enabled: bool
+    reason: str = Field(min_length=3, max_length=200)
+    mode: str | None = None
+
+
+class RepairAction(BaseModel):
+    action: str
     reason: str = Field(min_length=3, max_length=200)
 
 
@@ -91,7 +103,7 @@ def work(request: Request, fail: bool = False, auto: bool = False, delay_ms: int
     with contador_lock:
         if auto:
             auto_counter += 1
-            fail = auto_fault_enabled and auto_counter % 2 == 0
+            fail = auto_fault_enabled and (fault_mode != "intermittent" or auto_counter % 2 == 0)
         fault_active = auto_fault_enabled if auto else None
         contador["total"] += 1
         contador["falhas" if fail else "sucessos"] += 1
@@ -102,7 +114,7 @@ def work(request: Request, fail: bool = False, auto: bool = False, delay_ms: int
         registrar("backend_delay", request_id, scenario, attempt=attempt, delay_ms=delay_ms)
         time.sleep(delay_ms / 1000)
     registrar("backend_response", request_id, scenario, attempt=attempt, status=503 if fail else 200,
-              error_name="IntermittentBackendError" if fail and auto else None, delay_ms=delay_ms)
+              error_name=ERROR_NAMES[fault_mode] if fail and auto else None, delay_ms=delay_ms)
     if fail:
         raise HTTPException(status_code=503, detail="Falha simulada no servico")
     return {"status": "ok", "fault_active": fault_active}
@@ -112,6 +124,17 @@ def work(request: Request, fail: bool = False, auto: bool = False, delay_ms: int
 def inventory_state():
     with contador_lock:
         return {"available": {sku: dict(sizes) for sku, sizes in inventory.items()}, "reservations": len(reservations)}
+
+
+@app.post("/inventory/reset")
+def reset_inventory(authorization: str | None = Header(default=None)):
+    if not control_token or not hmac.compare_digest(authorization or "", f"Bearer {control_token}"):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    with contador_lock:
+        inventory.clear()
+        inventory.update({sku: dict(sizes) for sku, sizes in INITIAL_INVENTORY.items()})
+        reservations.clear()
+    return inventory_state()
 
 
 @app.post("/inventory/reservations")
@@ -127,9 +150,9 @@ def reserve_stock(action: ReservationRequest, request: Request):
                 status, error_name = 200, None
         else:
             auto_counter += 1
-            failed = auto_fault_enabled and auto_counter % 2 == 0
+            failed = auto_fault_enabled and (fault_mode != "intermittent" or auto_counter % 2 == 0)
             if failed:
-                status, error_name = 503, "IntermittentBackendError"
+                status, error_name = 503, ERROR_NAMES[fault_mode]
             elif action.sku not in inventory or action.size not in inventory[action.sku]:
                 status, error_name = 404, None
             elif inventory[action.sku][action.size] < action.quantity:
@@ -161,18 +184,37 @@ def release_stock(order_id: str, authorization: str | None = Header(default=None
 @app.get("/fault")
 def fault_state():
     with contador_lock:
-        return {"enabled": auto_fault_enabled}
+        return {"enabled": auto_fault_enabled, "mode": fault_mode}
 
 
 @app.post("/fault")
 def set_fault(action: FaultAction, authorization: str | None = Header(default=None)):
-    global auto_fault_enabled
+    global auto_fault_enabled, fault_mode
     if not control_token or not hmac.compare_digest(authorization or "", f"Bearer {control_token}"):
         raise HTTPException(status_code=403, detail="Acesso negado")
     with contador_lock:
+        if action.mode is not None:
+            if action.mode not in ERROR_NAMES:
+                raise HTTPException(status_code=422, detail="Modo de falha desconhecido")
+            fault_mode = action.mode
         auto_fault_enabled = action.enabled
-    registrar("fault_control", str(uuid4()), "agent_action", enabled=action.enabled, reason=action.reason)
-    return {"enabled": action.enabled}
+    registrar("fault_control", str(uuid4()), "agent_action", enabled=action.enabled, mode=fault_mode, reason=action.reason)
+    return {"enabled": action.enabled, "mode": fault_mode}
+
+
+@app.post("/repair")
+def repair(action: RepairAction, authorization: str | None = Header(default=None)):
+    global auto_fault_enabled
+    if not control_token or not hmac.compare_digest(authorization or "", f"Bearer {control_token}"):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    if action.action not in REPAIR_ACTIONS.values():
+        raise HTTPException(status_code=422, detail="Acao desconhecida")
+    with contador_lock:
+        if action.action != REPAIR_ACTIONS[fault_mode]:
+            raise HTTPException(status_code=409, detail="Acao nao corrigiu a causa ativa")
+        auto_fault_enabled = False
+    registrar("repair_control", str(uuid4()), "agent_action", action=action.action, reason=action.reason)
+    return {"enabled": False, "action": action.action}
 
 
 @app.get("/stats")

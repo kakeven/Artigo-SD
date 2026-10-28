@@ -109,8 +109,8 @@ class AgentService:
         evidence = self.repository.recent_evidence(target, self.episode_started_at)
         if action:
             try:
-                endpoint = "/fault" if target == "instavel" else "/repair"
-                payload = {"enabled": False, "reason": f"{decision_source}:{label}"} if target == "instavel" else {"action": action, "reason": f"{decision_source}:{label}"}
+                endpoint = "/repair"
+                payload = {"action": action, "reason": f"{decision_source}:{label}"}
                 response = self.client.post(
                     f"{self.sources[target]}{endpoint}", json=payload,
                     headers={"Authorization": f"Bearer {self.token}"},
