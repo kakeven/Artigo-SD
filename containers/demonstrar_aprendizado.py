@@ -21,7 +21,7 @@ def main() -> None:
     learning = []
     for number in range(1, 4):
         report = run_demo("qwen_memory", "dependency_timeout")
-        decision = next((item for item in report["agent_decisions"] if item["target"] == "carga"), {})
+        decision = next((item for item in report["agent_decisions"] if item["target"] == "pagamentos"), {})
         observation = {"incident": number, "error_name": decision.get("error_name"),
                        "decision_source": decision.get("strategy"), "action": decision.get("action"),
                        "verified": bool(decision.get("verified"))}
@@ -31,13 +31,13 @@ def main() -> None:
             raise RuntimeError("Qwen nao reparou o incidente; memoria nao pode aprender")
 
     _, snapshot = request_json(f"{AGENT}/status")
-    memory_case = next((item for item in snapshot["memory"] if item["target"] == "carga"
+    memory_case = next((item for item in snapshot["memory"] if item["target"] == "pagamentos"
                         and item["error_name"] == "DependencyTimeoutError"), None)
     if memory_case is None or memory_case["verified_count"] < 3:
         raise RuntimeError("A memoria nao registrou tres reparos verificados")
 
     report = run_demo("memory", "dependency_timeout")
-    decision = next((item for item in report["agent_decisions"] if item["target"] == "carga"), {})
+    decision = next((item for item in report["agent_decisions"] if item["target"] == "pagamentos"), {})
     result = {"learning_incidents": learning, "memory_case": memory_case,
               "reused_action": decision.get("action"), "reused_from": decision.get("strategy"),
               "reused_verified": bool(decision.get("verified"))}

@@ -10,7 +10,7 @@ from uuid import uuid4
 from typing import Literal
 from pydantic import BaseModel, Field
 
-app = FastAPI(title="Container Instável")
+app = FastAPI(title="Serviço de Estoque")
 
 inicio = time.time()
 contador = {"total": 0, "falhas": 0, "sucessos": 0, "por_cenario": {}}
@@ -58,7 +58,7 @@ def registrar(evento: str, request_id: str, scenario: str, **details):
         entry = {
             "sequence": event_sequence,
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "service": "instavel",
+            "service": "estoque",
             "event": evento,
             "request_id": request_id,
             "scenario": scenario,
@@ -70,7 +70,7 @@ def registrar(evento: str, request_id: str, scenario: str, **details):
 @app.get("/")
 def root():
     return {
-        "service": "instavel",
+        "service": "estoque",
         "message": "API continua executando"
     }
 

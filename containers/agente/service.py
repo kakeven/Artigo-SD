@@ -17,9 +17,9 @@ from strategies import choose_action, most_common_error
 class AgentService:
     def __init__(self):
         self.sources = {
-            "normal": os.getenv("NORMAL_URL", "http://normal:8000"),
-            "instavel": os.getenv("UNSTABLE_URL", "http://instavel:8000"),
-            "carga": os.getenv("ERROR_URL", "http://carga:8000"),
+            "pedidos": os.getenv("PEDIDOS_URL", "http://pedidos:8000"),
+            "estoque": os.getenv("ESTOQUE_URL", "http://estoque:8000"),
+            "pagamentos": os.getenv("PAGAMENTOS_URL", "http://pagamentos:8000"),
         }
         self.gateway_url = os.getenv("GATEWAY_URL", "http://protecao:8000")
         self.token = os.getenv("AGENT_CONTROL_TOKEN", "")
@@ -78,10 +78,10 @@ class AgentService:
             except (httpx.HTTPError, ValueError, KeyError, TypeError):
                 continue
 
-        for target in ("normal", "instavel", "carga"):
+        for target in ("pedidos", "estoque", "pagamentos"):
             if self.new_status_count[target] < 6:
                 continue
-            if target != "normal":
+            if target != "pedidos":
                 try:
                     fault = self.client.get(f"{self.sources[target]}/fault").json()
                     if not fault.get("enabled"):
@@ -93,7 +93,7 @@ class AgentService:
                 continue
             label, confidence = self.model.predict(statuses)
             self.predictions[target] = {"type": label, "confidence": round(confidence, 3), "sample_size": len(statuses)}
-            if target == "normal":
+            if target == "pedidos":
                 continue
             if label == "normal" or confidence < 0.7 or sum(status >= 500 for status in statuses) < 3:
                 continue
@@ -163,7 +163,7 @@ class AgentService:
     def reset_episode(self, strategy: str | None = None) -> None:
         if strategy is not None and strategy not in ("rf", "memory", "qwen_memory"):
             raise ValueError("Estrategia desconhecida")
-        for target in ("instavel", "carga"):
+        for target in ("estoque", "pagamentos"):
             response = self.client.post(
                 f"{self.gateway_url}/control/{target}",
                 json={"fallback": False, "reason": "new_demo_episode"},
@@ -172,7 +172,7 @@ class AgentService:
             response.raise_for_status()
             response = self.client.post(
                 f"{self.sources[target]}/fault",
-                json={"enabled": True, "reason": "new_demo_episode", **({"mode": "overload"} if target == "carga" else {})},
+                json={"enabled": True, "reason": "new_demo_episode", **({"mode": "overload"} if target == "pagamentos" else {})},
                 headers={"Authorization": f"Bearer {self.token}"},
             )
             response.raise_for_status()

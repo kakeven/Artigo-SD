@@ -39,7 +39,7 @@ def main() -> None:
             print(f"Executando {strategy} / {cause}...")
             result = run_demo(strategy, cause)
             decisions = {item["target"]: item for item in result["agent_decisions"]}
-            choice = decisions.get("carga", {})
+            choice = decisions.get("pagamentos", {})
             case = {
                 "strategy": strategy,
                 "cause": cause,
@@ -48,8 +48,8 @@ def main() -> None:
                 "chosen_action": choice.get("action"),
                 "correct_root_cause": result["root_cause_correct"] == 2,
                 "repair_verified": bool(choice.get("verified")),
-                "carga_503": result["results"]["carga"]["direct_errors"],
-                "carga_200_after_repair": result["results"]["carga"]["repaired_successes"],
+                "pagamentos_503": result["results"]["pagamentos"]["direct_errors"],
+                "pagamentos_200_after_repair": result["results"]["pagamentos"]["repaired_successes"],
             }
             cases.append(case)
             print(f"  erro={case['error_name']} acao={case['chosen_action']} fonte={case['decision_source']} reparado={case['repair_verified']}")

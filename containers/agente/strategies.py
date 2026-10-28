@@ -9,12 +9,12 @@ import httpx
 
 
 ALLOWED_ACTIONS = {
-    "instavel": {"disable_simulated_fault", "restore_inventory_dependency", "release_reservation_lock"},
-    "carga": {"reset_overload", "restore_dependency", "reset_circuit_breaker"},
+    "estoque": {"disable_simulated_fault", "restore_inventory_dependency", "release_reservation_lock"},
+    "pagamentos": {"reset_overload", "restore_dependency", "reset_circuit_breaker"},
 }
 SOURCE_FILES = {
-    "instavel": Path("/source/instavel/main.py"),
-    "carga": Path("/source/carga/main.py"),
+    "estoque": Path("/source/estoque/main.py"),
+    "pagamentos": Path("/source/pagamentos/main.py"),
 }
 
 
@@ -30,7 +30,7 @@ def choose_action(strategy: str, target: str, error_name: str, statuses: list[in
     if strategy == "qwen_memory":
         proposed = ask_qwen(target, error_name, statuses)
         return (proposed, "qwen") if proposed else (None, "qwen_unavailable_or_invalid")
-    return ("disable_simulated_fault" if target == "instavel" else "reset_overload", "rf_fallback")
+    return ("disable_simulated_fault" if target == "estoque" else "reset_overload", "rf_fallback")
 
 
 def ask_qwen(target: str, error_name: str, statuses: list[int]) -> str | None:

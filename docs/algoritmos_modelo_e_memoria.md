@@ -55,15 +55,15 @@ O agente consulta `/events` dos serviços aproximadamente a cada segundo, guarda
 5. pelo menos três respostas 5xx na janela;
 6. intervalo de pelo menos 30 segundos desde a última tentativa de ação naquele serviço, quando houver repetição.
 
-O serviço `normal` é usado como controle saudável e não recebe ação de reparo. O agente atua nos serviços `instavel` (estoque) ou `carga` (pagamento). Após a detecção, ele consulta os nomes de erro recentes do serviço, ocorridos desde o início do episódio, e usa o nome mais frequente como pista para a decisão.
+O serviço `pedidos` é usado como controle saudável e não recebe ação de reparo. O agente atua nos serviços `estoque` ou `pagamentos`. Após a detecção, ele consulta os nomes de erro recentes do serviço, ocorridos desde o início do episódio, e usa o nome mais frequente como pista para a decisão.
 
 ## Estratégia 1 Random Forest com regra fixa
 
 O identificador técnico desta estratégia é `rf`. Ela **não usa a saída da floresta para prever diretamente uma ação**. A floresta decide apenas se o padrão é anormal o suficiente para agir. A ação é escolhida por uma regra fixa baseada no serviço:
 
 ```text
-se serviço == instavel: ação = disable_simulated_fault
-senão, se serviço == carga: ação = reset_overload
+se serviço == estoque: ação = disable_simulated_fault
+senão, se serviço == pagamentos: ação = reset_overload
 ```
 
 Assim, o agente consegue corrigir a sobrecarga do pagamento, cuja ação esperada é `reset_overload`. Uma falha diferente no mesmo serviço, como `DependencyTimeoutError`, continua produzindo HTTP 503, mas exige `restore_dependency`. Nesse caso a regra fixa escolhe uma ação permitida, porém incompatível com a causa ativa; o serviço rejeita o reparo.
@@ -75,7 +75,7 @@ Esta estratégia é a **referência sem memória**. Ela permite medir quanto se 
 O arquivo `containers/agente/repository.py` mantém a tabela SQLite `incident_memory`. Cada registro contém:
 
 ```text
-target          serviço afetado, como carga ou instavel
+target          serviço afetado, como pagamentos ou estoque
 error_name      nome do erro observado, como OverloadError
 action          ação que foi verificada para esse par
 verified_count  número de reparos verificados com essa ação
@@ -98,7 +98,7 @@ se ação não existir ou não for permitida:
 
 Quando a memória contém um caso correspondente, a decisão registrada tem origem `memory`. Quando não contém, a origem é `rf_fallback`. Um reparo verificado aumenta `verified_count` para o par serviço, erro e ação. Uma ação rejeitada ou uma chamada de prova que falhe não aumenta a contagem.
 
-Na comparação atual, a memória inicial contém `carga + OverloadError + reset_overload`, com contagem `3`. Por isso a sobrecarga é tratada pela memória. Para as outras quatro causas, essa memória inicial não oferece um caso correspondente e a estratégia aplica a regra fixa. **A memória não generaliza sozinha para nomes de erro que ainda não conhece.**
+Na comparação atual, a memória inicial contém `pagamentos + OverloadError + reset_overload`, com contagem `3`. Por isso a sobrecarga é tratada pela memória. Para as outras quatro causas, essa memória inicial não oferece um caso correspondente e a estratégia aplica a regra fixa. **A memória não generaliza sozinha para nomes de erro que ainda não conhece.**
 
 ## O modelo Qwen e sua consulta
 
@@ -110,8 +110,8 @@ O formato solicitado é `{"action": "nome_da_ação"}`. O agente extrai esse cam
 
 | Serviço | Ações permitidas |
 | --- | --- |
-| Estoque | `disable_simulated_fault`, `restore_inventory_dependency`, `release_reservation_lock` |
-| Pagamento | `reset_overload`, `restore_dependency`, `reset_circuit_breaker` |
+| `estoque` | `disable_simulated_fault`, `restore_inventory_dependency`, `release_reservation_lock` |
+| `pagamentos` | `reset_overload`, `restore_dependency`, `reset_circuit_breaker` |
 
 Se Ollama não responder, o JSON for inválido ou a ação estiver fora da lista, a função retorna `None`. A decisão é registrada como `no_action`, com origem `qwen_unavailable_or_invalid`; **não há retorno automático à regra fixa** nesse caso. Se Qwen propuser uma ação da lista, o agente chama `/repair` e faz a mesma verificação usada pelas outras estratégias. Uma ação permitida ainda pode ser errada para a causa atual: o serviço rejeita a incompatibilidade e a decisão fica sem verificação positiva.
 

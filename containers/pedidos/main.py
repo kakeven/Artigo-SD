@@ -12,10 +12,10 @@ from fastapi import FastAPI, Query, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-app = FastAPI(title="Container Normal")
-backend_url = os.getenv("BACKEND_URL", "http://instavel:8000")
-inventory_url = os.getenv("INVENTORY_URL", "http://instavel:8000")
-payment_url = os.getenv("PAYMENT_URL", "http://carga:8000")
+app = FastAPI(title="Serviço de Pedidos")
+backend_url = os.getenv("ESTOQUE_URL", "http://estoque:8000")
+inventory_url = os.getenv("INVENTORY_URL", "http://estoque:8000")
+payment_url = os.getenv("PAGAMENTOS_URL", "http://pagamentos:8000")
 client = httpx.Client(timeout=3.0, trust_env=False)
 shared_capacity = BoundedSemaphore(4)
 dependency_bulkhead = BoundedSemaphore(2)
@@ -49,7 +49,7 @@ def log_event(event: str, request_id: str, scenario: str, **details):
         entry = {
             "sequence": sequence,
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "service": "normal",
+            "service": "pedidos",
             "event": event,
             "request_id": request_id,
             "scenario": scenario,
@@ -65,8 +65,8 @@ def identity(request: Request, mode: str) -> tuple[str, str]:
 @app.get("/")
 def root():
     return {
-        "service": "normal",
-        "message": "Funcionando normalmente"
+        "service": "pedidos",
+        "message": "Serviço de pedidos funcionando"
     }
 
 
@@ -76,7 +76,7 @@ def work(request: Request):
     with lock:
         metrics["work"]["success"] += 1
     log_event("service_response", request_id, "agent_demo", status=200)
-    return {"service": "normal", "status": "ok"}
+    return {"service": "pedidos", "status": "ok"}
 
 
 @app.get("/products")

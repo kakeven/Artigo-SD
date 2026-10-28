@@ -18,7 +18,7 @@ STATUS = {
     "pending_reconciliation": ("Conferência pendente", "pending", "A resposta de uma etapa se perdeu; o resultado precisa ser conferido"),
     "pending": ("Em andamento", "pending", "O pedido ainda está em processamento"),
 }
-TARGET = {"instavel": "Estoque", "carga": "Pagamento", "normal": "Pedidos"}
+TARGET = {"estoque": "Estoque", "pagamentos": "Pagamento", "pedidos": "Pedidos"}
 PATTERN = {"intermittent": "Falha intermitente", "continuous": "Falha contínua", "normal": "Operação normal"}
 ACTION = {"disable_simulated_fault": "Desativar a falha intermitente do estoque",
           "restore_inventory_dependency": "Restabelecer a dependência do estoque",
@@ -58,7 +58,7 @@ def render_html(report: dict) -> str:
     failed = len(orders) - confirmed - pending
     target = report.get("target")
     verified = (any(item.get("target") == target and item.get("verified") for item in decisions) if target
-                else {item.get("target") for item in decisions if item.get("verified")} >= {"instavel", "carga"})
+                else {item.get("target") for item in decisions if item.get("verified")} >= {"estoque", "pagamentos"})
     recovered = verified and len(orders) >= 3 and all(item.get("status") == "confirmed" for item in orders[-3:])
     verdict = ("Os serviços voltaram a confirmar pedidos após o reparo." if recovered
                else "O episódio terminou com pedidos que ainda precisam de atenção." if pending
@@ -82,8 +82,8 @@ def render_html(report: dict) -> str:
     check_confirmed = sum(item.get("status") == "confirmed" for item in check_orders)
     story = "".join(f"<li>{safe(sentence)}</li>" for sentence in [
         f"O script ativou as falhas simuladas e enviou {len(incident_orders)} pedidos automaticamente.",
-        resolution("instavel", stock_failures, "Estoque"),
-        resolution("carga", payment_failures, "Pagamento") +
+        resolution("estoque", stock_failures, "Estoque"),
+        resolution("pagamentos", payment_failures, "Pagamento") +
         (f" A reserva de estoque foi liberada em {counts['payment_unavailable']} pedidos com erro de pagamento."
          if counts["payment_unavailable"] else ""),
         f"Após aguardar as decisões do agente, o script enviou {len(check_orders)} pedidos de verificação; "

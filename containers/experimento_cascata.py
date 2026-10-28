@@ -12,7 +12,7 @@ from experimento import get_json
 def read_stats(base_url: str) -> dict:
     status, body = get_json(f"{base_url}/stats")
     if status != 200:
-        raise RuntimeError("Nao foi possivel ler as metricas do servico normal")
+            raise RuntimeError("Nao foi possivel ler as metricas do servico pedidos")
     return body
 
 
@@ -60,13 +60,13 @@ def run_scenario(base_url: str, mode: str, independent_requests: int) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--requests", type=int, default=20, help="Chamadas a rota independente por cenario")
-    parser.add_argument("--normal", default="http://127.0.0.1:8001")
+    parser.add_argument("--pedidos", default="http://127.0.0.1:8001")
     args = parser.parse_args()
     if args.requests < 1:
         parser.error("requests deve ser positivo")
 
-    unsafe = run_scenario(args.normal, "unsafe", args.requests)
-    protected = run_scenario(args.normal, "protected", args.requests)
+    unsafe = run_scenario(args.pedidos, "unsafe", args.requests)
+    protected = run_scenario(args.pedidos, "protected", args.requests)
     print(json.dumps({
         "scenario": "dependencia lenta com erro HTTP 503",
         "unsafe": unsafe,

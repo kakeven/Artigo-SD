@@ -4,12 +4,12 @@ Este projeto é um mini sistema funcional para o artigo sobre **observabilidade*
 
 ## Sistema emulado: loja de roupas
 
-O laboratório também emula uma **loja de roupas**. O cliente escolhe uma peça, o tamanho (`P`, `M` ou `G`) e a quantidade. Um pedido percorre três serviços: `normal` oferece o catálogo e coordena o pedido, `instavel` reserva o estoque da peça no tamanho escolhido e `carga` autoriza um pagamento fictício. O pagamento não movimenta dinheiro. As falhas de estoque e pagamento afetam pedidos dentro da simulação, produzem os mesmos eventos observados pelo agente e podem ser reparadas por ele.
+O laboratório também emula uma **loja de roupas**. O cliente escolhe uma peça, o tamanho (`P`, `M` ou `G`) e a quantidade. Um pedido percorre três serviços: `pedidos` oferece o catálogo e coordena a compra, `estoque` reserva a peça no tamanho escolhido e `pagamentos` autoriza um pagamento fictício. O pagamento não movimenta dinheiro. As falhas de estoque e pagamento afetam pedidos dentro da simulação, produzem os mesmos eventos observados pelo agente e podem ser reparadas por ele.
 
 ```text
-cliente ── POST /orders ──► normal (pedidos e catálogo)
-                              ├──► instavel (reserva de estoque)
-                              └──► carga (pagamento simulado)
+cliente ── POST /orders ──► pedidos (catálogo e coordenação)
+                              ├──► estoque (reserva)
+                              └──► pagamentos (autorização fictícia)
                                       │
                 eventos JSON ◄────────┘
                      │
@@ -57,9 +57,9 @@ Agora há também um **agente com modelo local**: ele acompanha os logs de três
 
 | Contêiner | Comportamento em `/work` | Padrão que o agente observa |
 | --- | --- | --- |
-| `normal` | Sempre responde HTTP 200. | Controle saudável. |
-| `instavel` | Com a falha ativa, alterna entre HTTP 200 e 503. Após o reparo, responde 200. | Erro intermitente. |
-| `carga` | Com a falha ativa, responde HTTP 503. Após o reparo, responde 200. A rota `/carga` original continua disponível. | Erro contínuo. |
+| `pedidos` | Coordena catálogo e pedidos da loja; também contém as rotas dos experimentos de cascata. | Controle saudável e coordenação. |
+| `estoque` | Reserva as peças e tamanhos; também simula falhas intermitentes e as novas causas de estoque. | Erro intermitente ou contínuo. |
+| `pagamentos` | Autoriza o pagamento fictício; também mantém as causas de falha contínua. A rota `/carga` original continua disponível. | Erro contínuo. |
 
 O fluxo é: **requisição → serviço → log JSON → coleta em SQLite → modelo local → decisão → reparo da falha simulada → chamada de verificação no mesmo serviço**. O agente consulta `/events` dos três serviços a cada segundo. Ele usa somente horário, serviço, evento, ID de requisição e status; a verdade do experimento fica em um arquivo separado, fora do contêiner do agente.
 
@@ -95,16 +95,16 @@ A comparação limpa a **memória de incidentes** antes de começar (mantém o h
 
 Para ver o aprendizado de um erro novo: `python containers/demonstrar_aprendizado.py`. O script limpa a memória, deixa Qwen resolver três incidentes `DependencyTimeoutError` e depois muda para `memory`. O último incidente deve ser reparado pela memória sem chamada ao modelo, como mostra o [relatório desta execução](containers/resultados/aprendizado_20261027_202306.json). Os **pesos do Qwen não são alterados**; o que aprende é o banco de casos verificados.
 
-O comando prepara o segredo local, sobe os cinco contêineres necessários, espera as APIs responderem e executa `normal`, `instavel` e `carga`. O terminal apresenta uma tabela com respostas antes e depois do reparo, diagnóstico e verificação; abaixo mostra as ações do agente e logs que serviram de evidência. O relatório completo e a verdade-terreno separada são salvos em `containers/resultados/`. Para reutilizar as imagens Docker já construídas, use `python containers/executar_cenarios.py --sem-build`.
+O comando prepara o segredo local, sobe os cinco contêineres necessários, espera as APIs responderem e executa `pedidos`, `estoque` e `pagamentos`. O terminal apresenta uma tabela com respostas antes e depois do reparo, diagnóstico e verificação; abaixo mostra as ações do agente e logs que serviram de evidência. O relatório completo e a verdade-terreno separada são salvos em `containers/resultados/`. Para reutilizar as imagens Docker já construídas, use `python containers/executar_cenarios.py --sem-build`.
 
-A execução envia 8 chamadas a `normal` e 22 a cada serviço com falha. Depois que o agente age, envia mais 5 chamadas a `instavel` e 5 a `carga`; por isso a tabela mostra 27 chamadas em cada um desses cenários e sempre inclui uma amostra visível do comportamento após o reparo.
+A execução envia 8 chamadas a `pedidos` e 22 a cada serviço com falha. Depois que o agente age, envia mais 5 chamadas a `estoque` e 5 a `pagamentos`; por isso a tabela mostra 27 chamadas em cada um desses cenários e sempre inclui uma amostra visível do comportamento após o reparo.
 
 Se preferir executar cada etapa manualmente:
 
 ```powershell
 cd containers
 python preparar_ambiente.py
-docker compose up --build -d normal instavel carga protecao agente
+docker compose up --build -d pedidos estoque pagamentos protecao agente
 python demo_agente.py
 ```
 
@@ -119,7 +119,7 @@ python avaliar_agente.py --episodes 3
 O relatório em `containers/resultados/` inclui recall de detecção, acerto da causa raiz, taxa de reparo verificado, falsos alarmes no controle saudável e tempo médio até a decisão. Cada episódio reativa as falhas simuladas para uma nova comparação, preservando no SQLite os logs e decisões anteriores. Para acompanhar as ações em tempo real:
 
 ```powershell
-docker compose logs -f --tail=20 agente protecao normal instavel carga
+docker compose logs -f --tail=20 agente protecao pedidos estoque pagamentos
 ```
 
 O token de controle é gerado em `containers/.env`, não é versionado e não aparece nos logs. A API de controle recusa chamadas sem ele; veja as [decisões de segurança](docs/decisoes-seguranca.md).
@@ -143,27 +143,27 @@ Para retentativas, o protótipo compara 100 requisições lógicas em três cen�
 ## Componentes e funcionamento
 
 ```text
-experimento.py ── sem proteção ────────────────────────► instavel:8000
-               ├─ duas tentativas ─────────────────────► instavel:8000
-               └─ com proteção ─► protecao:8000 ──────► instavel:8000
+experimento.py ── sem proteção ────────────────────────► estoque:8000
+               ├─ duas tentativas ─────────────────────► estoque:8000
+               └─ com proteção ─► protecao:8000 ──────► estoque:8000
 
-experimento_cascata.py ──► normal:8000 ──► instavel:8000
+experimento_cascata.py ──► pedidos:8000 ──► estoque:8000
                                  └──── rota independente
 ```
 
-- `containers/instavel/main.py`: simula o serviço chamado. `/work?fail=true` sempre retorna HTTP 503; `/work?fail=false` retorna HTTP 200. `/stats` conta as chamadas recebidas.
-- `containers/normal/main.py`: no experimento de cascata, chama uma dependência lenta e oferece uma rota independente. Simula capacidade compartilhada e capacidade isolada.
+- `containers/estoque/main.py`: implementa o estoque e também as rotas de falha usadas pelos experimentos de retentativas.
+- `containers/pedidos/main.py`: coordena pedidos da loja e, no experimento de cascata, chama uma dependência lenta e oferece uma rota independente.
 - `containers/protecao/main.py` e `service.py`: formam o intermediário. Ele aplica limite de tentativas, timeout, atraso curto com variação aleatória e *circuit breaker*. `/stats` mostra os contadores e o estado do circuito.
 - `containers/experimento.py`: executa os três cenários, lê contadores antes e depois de cada um e imprime o resultado em JSON.
 - `containers/experimento_cascata.py`: gera chamadas dependentes concorrentes e mede quantas chamadas independentes continuam funcionando com e sem isolamento.
 - `containers/protecao/dashboard.html`: painel de observabilidade em `http://127.0.0.1:8004/dashboard`, atualizado a cada dois segundos.
-- `containers/docker-compose.yml`: inicia os serviços. O contêiner `carga` participa da demonstração do agente e mantém a rota `/carga` original.
+- `containers/docker-compose.yml`: inicia os serviços. O contêiner `pagamentos` participa da demonstração do agente e mantém a rota `/carga` original.
 
 O circuito começa **fechado**, permitindo chamadas. Após cinco requisições lógicas consecutivas falharem, fica **aberto** e barra novas chamadas ao serviço instável. Cinco segundos depois, fica **meio aberto** e permite uma única chamada de prova. Se ela funcionar, fecha; se falhar, abre novamente.
 
 ### Falha em cascata e isolamento
 
-O serviço `normal` tem capacidade compartilhada para quatro operações. No modo `unsafe`, quatro chamadas à dependência lenta ocupam toda essa capacidade por 1,5 segundo. Chamadas à rota independente passam a receber HTTP 503 mesmo sem usar a dependência: a lentidão se propagou.
+O serviço `pedidos` tem capacidade compartilhada para quatro operações. No modo `unsafe`, quatro chamadas à dependência lenta ocupam toda essa capacidade por 1,5 segundo. Chamadas à rota independente passam a receber HTTP 503 mesmo sem usar a dependência: a lentidão se propagou.
 
 No modo `protected`, a dependência usa um *bulkhead* próprio com duas vagas. O excedente de chamadas dependentes é rejeitado rapidamente, enquanto a rota independente preserva a capacidade compartilhada. O experimento mede sucessos e rejeições dessa rota em cada modo.
 
@@ -184,13 +184,13 @@ Pré-requisitos: Docker Desktop em execução e Python 3.10 ou superior instalad
 ```powershell
 cd containers
 python preparar_ambiente.py
-docker compose up --build -d instavel normal carga protecao agente
+docker compose up --build -d estoque pedidos pagamentos protecao agente
 ```
 
 Abra `http://127.0.0.1:8004/dashboard` no navegador. Para acompanhar os logs JSON em tempo real, deixe um segundo terminal aberto na pasta `containers`:
 
 ```powershell
-docker compose logs -f --tail=20 instavel normal protecao
+docker compose logs -f --tail=20 estoque pedidos protecao
 ```
 
 Em um terceiro terminal, na mesma pasta, execute os experimentos:
@@ -205,7 +205,7 @@ Para guardar evidências para o artigo, rode os scripts novamente redirecionando
 ```powershell
 python experimento.py | Tee-Object -FilePath resultado_retentativas.json
 python experimento_cascata.py | Tee-Object -FilePath resultado_cascata.json
-docker compose logs --no-color instavel normal protecao | Set-Content logs.txt
+docker compose logs --no-color estoque pedidos protecao | Set-Content logs.txt
 ```
 
 Esses arquivos são criados na pasta `containers`. `logs.txt` inclui os prefixos do Compose e mensagens do servidor; os **eventos de aplicação** contêm objetos JSON. Registre no artigo as configurações usadas e execute cada comparação sem tráfego externo concorrente.
@@ -238,7 +238,7 @@ Esta opção executa **os dois experimentos anteriores** de retentativas e casca
 Instale as dependências uma vez, na raiz do projeto:
 
 ```powershell
-python -m pip install -r containers/instavel/req.txt -r containers/normal/req.txt -r containers/protecao/req.txt
+python -m pip install -r containers/estoque/req.txt -r containers/pedidos/req.txt -r containers/protecao/req.txt
 ```
 
 Abra **quatro terminais PowerShell** na raiz do projeto.
@@ -246,22 +246,23 @@ Abra **quatro terminais PowerShell** na raiz do projeto.
 Terminal 1, serviço instável:
 
 ```powershell
-python -m uvicorn main:app --app-dir containers/instavel --host 127.0.0.1 --port 8002
+python -m uvicorn main:app --app-dir containers/estoque --host 127.0.0.1 --port 8002
 ```
 
 Terminal 2, intermediário de proteção:
 
 ```powershell
-$env:BACKEND_URL = "http://127.0.0.1:8002"
-$env:NORMAL_URL = "http://127.0.0.1:8001"
+$env:ESTOQUE_URL = "http://127.0.0.1:8002"
+$env:PEDIDOS_URL = "http://127.0.0.1:8001"
 python -m uvicorn main:app --app-dir containers/protecao --host 127.0.0.1 --port 8004
 ```
 
-Terminal 3, serviço normal:
+Terminal 3, serviço de pedidos:
 
 ```powershell
-$env:BACKEND_URL = "http://127.0.0.1:8002"
-python -m uvicorn main:app --app-dir containers/normal --host 127.0.0.1 --port 8001
+$env:ESTOQUE_URL = "http://127.0.0.1:8002"
+$env:PAGAMENTOS_URL = "http://127.0.0.1:8003"
+python -m uvicorn main:app --app-dir containers/pedidos --host 127.0.0.1 --port 8001
 ```
 
 Terminal 4, experimentos:
@@ -299,12 +300,12 @@ Os números podem variar se a execução protegida durar mais do que cinco segun
 
 `experimento_cascata.py` inicia quatro chamadas concorrentes à dependência lenta e, enquanto elas estão ativas, envia 20 chamadas à rota independente. Sem isolamento, as quatro vagas compartilhadas ficam ocupadas e a rota independente tende a ter **0 sucessos**. Com *bulkhead*, duas chamadas dependentes ocupam vagas isoladas e as outras duas são rejeitadas rapidamente; a rota independente tende a ter **20 sucessos**. Os campos `independent_success` e `independent_rejected` mostram o resultado medido.
 
-O script também imprime IDs de exemplo. Copie um `sample_dependency_request_id` ou `sample_independent_request_id` para o filtro do painel. Nos logs da dependência, o mesmo ID aparece no serviço `normal` e no serviço `instavel`, mostrando o caminho da chamada. A hora UTC em `timestamp` permite ordenar os eventos; `scenario`, `event`, `status` e `duration_ms` ajudam a explicar o efeito da falha.
+O script também imprime IDs de exemplo. Copie um `sample_dependency_request_id` ou `sample_independent_request_id` para o filtro do painel. Nos logs da dependência, o mesmo ID aparece nos serviços `pedidos` e `estoque`, mostrando o caminho da chamada. A hora UTC em `timestamp` permite ordenar os eventos; `scenario`, `event`, `status` e `duration_ms` ajudam a explicar o efeito da falha.
 
 Exemplo de um evento JSON, com ID ilustrativo:
 
 ```json
-{"timestamp":"2026-10-27T12:00:00+00:00","service":"normal","event":"dependency_finished","request_id":"exemplo-123","scenario":"cascade_unsafe","status":503,"duration_ms":1500}
+{"timestamp":"2026-10-27T12:00:00+00:00","service":"pedidos","event":"dependency_finished","request_id":"exemplo-123","scenario":"cascade_unsafe","status":503,"duration_ms":1500}
 ```
 
 ## Endpoints úteis
@@ -324,7 +325,7 @@ Exemplo de um evento JSON, com ID ilustrativo:
 | Proteção (`localhost:8004`) | `GET /observability` | Reúne logs recentes e métricas dos dois serviços. |
 | Proteção (`localhost:8004`) | `GET /dashboard` | Mostra o painel ao vivo. |
 
-A rota `/health` do serviço instável retorna falha após 30 segundos enquanto a anomalia automática está ativa; depois que o agente a desativa, volta a indicar `healthy`. A rota `/health` de `carga` também passa a indicar `healthy` após o reparo. Os experimentos de retentativas e cascata medem `/work` e não dependem desses health checks.
+A rota `/health` do serviço de estoque retorna falha após 30 segundos enquanto a anomalia automática está ativa; depois que o agente a desativa, volta a indicar `healthy`. A rota `/health` de `pagamentos` também passa a indicar `healthy` após o reparo. Os experimentos de retentativas e cascata medem `/work` e não dependem desses health checks.
 
 ## Limites
 

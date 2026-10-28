@@ -63,15 +63,15 @@ def run_demo(strategy: str = "rf", carga_mode: str = "overload") -> dict:
     truth = {
         "episode_started_at": episode["episode_started_at"],
         "faults": [
-            {"root_service": "instavel", "fault_type": "intermittent", "error_name": "IntermittentBackendError"},
-            {"root_service": "carga", "fault_type": "continuous",
+            {"root_service": "estoque", "fault_type": "intermittent", "error_name": "IntermittentBackendError"},
+            {"root_service": "pagamentos", "fault_type": "continuous",
              "error_name": "OverloadError" if carga_mode == "overload" else "DependencyTimeoutError"},
         ],
     }
     results = {
-        "normal": run_target("normal", 8),
-        "instavel": run_target("instavel", 22),
-        "carga": run_target("carga", 22),
+        "pedidos": run_target("pedidos", 8),
+        "estoque": run_target("estoque", 22),
+        "pagamentos": run_target("pagamentos", 22),
     }
     deadline = time.monotonic() + (90 if strategy == "qwen_memory" else 8)
     while time.monotonic() < deadline:
@@ -80,7 +80,7 @@ def run_demo(strategy: str = "rf", carga_mode: str = "overload") -> dict:
         if not unstable_fault["enabled"] and not direct_error_fault["enabled"]:
             break
         time.sleep(0.25)
-    for target in ("instavel", "carga"):
+    for target in ("estoque", "pagamentos"):
         confirmation = run_target(target, 5)
         result = results[target]
         result["requests"] += confirmation["requests"]
@@ -93,9 +93,9 @@ def run_demo(strategy: str = "rf", carga_mode: str = "overload") -> dict:
         decision for decision in agent_status["decisions"]
         if decision["timestamp"] >= episode["episode_started_at"]
     ]
-    latest = {decision["target"]: decision for decision in decisions if decision["target"] in ("instavel", "carga")}
-    expected_actions = {"instavel": "disable_simulated_fault",
-                        "carga": "reset_overload" if carga_mode == "overload" else "restore_dependency"}
+    latest = {decision["target"]: decision for decision in decisions if decision["target"] in ("estoque", "pagamentos")}
+    expected_actions = {"estoque": "disable_simulated_fault",
+                        "pagamentos": "reset_overload" if carga_mode == "overload" else "restore_dependency"}
     correct = sum(
         latest.get(item["root_service"], {}).get("predicted_type") == item["fault_type"]
         and latest.get(item["root_service"], {}).get("action") == expected_actions[item["root_service"]]

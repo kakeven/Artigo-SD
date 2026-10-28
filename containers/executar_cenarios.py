@@ -13,7 +13,7 @@ from demo_agente import AGENT, BASE, request_json, run_demo
 
 
 ROOT = Path(__file__).resolve().parent
-SERVICES = ("normal", "instavel", "carga", "protecao", "agente")
+SERVICES = ("pedidos", "estoque", "pagamentos", "protecao", "agente")
 
 
 def run_command(args: list[str], timeout: int) -> None:
@@ -55,9 +55,9 @@ def wait_for_services() -> None:
 def print_table(report: dict, predictions: dict) -> None:
     decisions = {item["target"]: item for item in report["agent_decisions"]}
     specs = (
-        ("normal", "Normal"),
-        ("instavel", "Instavel"),
-        ("carga", "Erro direto"),
+        ("pedidos", "Pedidos"),
+        ("estoque", "Estoque"),
+        ("pagamentos", "Pagamentos"),
     )
     headers = ("Cenario", "Chamadas", "200 antes", "503 antes", "200 reparo", "Diagnostico", "Verificado")
     widths = (12, 8, 10, 10, 10, 14, 10)
@@ -119,7 +119,7 @@ def main() -> None:
         command.append("--build")
     run_command(command + list(SERVICES), timeout=600)
     wait_for_services()
-    print(f"Executando normal, instavel e carga; estrategia={args.strategy}, causa={args.cause}...\n")
+    print(f"Executando pedidos, estoque e pagamentos; estrategia={args.strategy}, causa={args.cause}...\n")
 
     report = run_demo(args.strategy, args.cause)
     _, agent_status = request_json(f"{AGENT}/status")

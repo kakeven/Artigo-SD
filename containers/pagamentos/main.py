@@ -9,7 +9,7 @@ import hmac
 import os
 from pydantic import BaseModel, Field
 
-app = FastAPI(title="Container de Carga e Erro")
+app = FastAPI(title="Serviço de Pagamentos")
 lock = threading.Lock()
 events_buffer = deque(maxlen=2000)
 sequence = 0
@@ -48,7 +48,7 @@ def log_event(request_id: str, status: int, error_name: str | None = None, scena
         entry = {
             "sequence": sequence,
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "service": "carga",
+            "service": "pagamentos",
             "event": "service_response",
             "scenario": scenario,
             "request_id": request_id,
@@ -61,7 +61,7 @@ def log_event(request_id: str, status: int, error_name: str | None = None, scena
 @app.get("/")
 def root():
     return {
-        "service": "carga",
+        "service": "pagamentos",
         "message": "Use /work para simular erro continuo ou /carga para gerar uso de CPU"
     }
 
@@ -77,7 +77,7 @@ def work(request: Request):
     log_event(request_id, status, error_name)
     if status == 503:
         raise HTTPException(status_code=503, detail=error_name)
-    return {"service": "carga", "status": "ok", "fault_active": False}
+    return {"service": "pagamentos", "status": "ok", "fault_active": False}
 
 
 @app.post("/payments/charges")
@@ -131,7 +131,7 @@ def set_fault(action: FaultAction, authorization: str | None = Header(default=No
                 raise HTTPException(status_code=422, detail="Modo de falha desconhecido")
             fault_mode = action.mode
         error_enabled = action.enabled
-    print(json.dumps({"timestamp": datetime.now(timezone.utc).isoformat(), "service": "carga", "event": "fault_control", "enabled": action.enabled, "mode": fault_mode, "reason": action.reason}), flush=True)
+    print(json.dumps({"timestamp": datetime.now(timezone.utc).isoformat(), "service": "pagamentos", "event": "fault_control", "enabled": action.enabled, "mode": fault_mode, "reason": action.reason}), flush=True)
     return {"enabled": action.enabled}
 
 
@@ -146,7 +146,7 @@ def repair(action: RepairAction, authorization: str | None = Header(default=None
         if action.action != REPAIR_ACTIONS[fault_mode]:
             raise HTTPException(status_code=409, detail="Acao nao corrigiu a causa ativa")
         error_enabled = False
-    print(json.dumps({"timestamp": datetime.now(timezone.utc).isoformat(), "service": "carga", "event": "repair_control", "action": action.action, "reason": action.reason}), flush=True)
+    print(json.dumps({"timestamp": datetime.now(timezone.utc).isoformat(), "service": "pagamentos", "event": "repair_control", "action": action.action, "reason": action.reason}), flush=True)
     return {"enabled": False, "action": action.action}
 
 

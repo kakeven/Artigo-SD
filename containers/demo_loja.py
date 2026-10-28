@@ -16,8 +16,8 @@ ROOT = Path(__file__).resolve().parent
 SHOP = "http://127.0.0.1:8001"
 INVENTORY = "http://127.0.0.1:8002"
 PAYMENT = "http://127.0.0.1:8003"
-CAUSE_TARGET = {"overload": "carga", "dependency_timeout": "carga", "circuit_open": "carga",
-                "dependency_unavailable": "instavel", "reservation_locked": "instavel"}
+CAUSE_TARGET = {"overload": "pagamentos", "dependency_timeout": "pagamentos", "circuit_open": "pagamentos",
+                "dependency_unavailable": "estoque", "reservation_locked": "estoque"}
 
 
 def token_from_env() -> str:
@@ -40,8 +40,8 @@ def run(strategy: str, cause: str, count: int) -> dict:
     if status != 200:
         raise RuntimeError(f"Nao foi possivel reiniciar o estoque: HTTP {status}")
     target = CAUSE_TARGET[cause]
-    for service, url, mode in (("instavel", INVENTORY, cause if target == "instavel" else "intermittent"),
-                               ("carga", PAYMENT, cause if target == "carga" else "overload")):
+    for service, url, mode in (("estoque", INVENTORY, cause if target == "estoque" else "intermittent"),
+                               ("pagamentos", PAYMENT, cause if target == "pagamentos" else "overload")):
         status, _ = request_json(f"{url}/fault", method="POST", headers=auth,
                                  body={"enabled": service == target, "mode": mode, "reason": "shop_demo"})
         if status != 200:

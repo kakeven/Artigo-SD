@@ -1,18 +1,18 @@
 services:
 
-  normal:
-    build: ./normal
-    container_name: monitor-normal
+  pedidos:
+    build: ./pedidos
+    container_name: monitor-pedidos
     ports:
       - "127.0.0.1:8001:8000"
     environment:
-      BACKEND_URL: http://instavel:8000
-      INVENTORY_URL: http://instavel:8000
-      PAYMENT_URL: http://carga:8000
+      ESTOQUE_URL: http://estoque:8000
+      INVENTORY_URL: http://estoque:8000
+      PAGAMENTOS_URL: http://pagamentos:8000
       AGENT_CONTROL_TOKEN: ${AGENT_CONTROL_TOKEN:?Execute python preparar_ambiente.py}
     labels:
       monitor: "true"
-      tipo: "normal"
+      tipo: "pedidos"
     healthcheck:
       test:
         [
@@ -25,16 +25,16 @@ services:
       timeout: 3s
       retries: 2
 
-  instavel:
-    build: ./instavel
-    container_name: monitor-instavel
+  estoque:
+    build: ./estoque
+    container_name: monitor-estoque
     ports:
       - "127.0.0.1:8002:8000"
     environment:
       AGENT_CONTROL_TOKEN: ${AGENT_CONTROL_TOKEN:?Execute python preparar_ambiente.py}
     labels:
       monitor: "true"
-      tipo: "instavel"
+      tipo: "estoque"
     healthcheck:
       test:
         [
@@ -47,16 +47,16 @@ services:
       timeout: 3s
       retries: 2
 
-  carga:
-    build: ./carga
-    container_name: monitor-carga
+  pagamentos:
+    build: ./pagamentos
+    container_name: monitor-pagamentos
     ports:
       - "127.0.0.1:8003:8000"
     environment:
       AGENT_CONTROL_TOKEN: ${AGENT_CONTROL_TOKEN:?Execute python preparar_ambiente.py}
     labels:
       monitor: "true"
-      tipo: "carga"
+      tipo: "pagamentos"
     healthcheck:
       test:
         [
@@ -74,27 +74,27 @@ services:
     ports:
       - "127.0.0.1:8004:8000"
     environment:
-      BACKEND_URL: http://instavel:8000
-      NORMAL_URL: http://normal:8000
-      ERROR_URL: http://carga:8000
+      ESTOQUE_URL: http://estoque:8000
+      PEDIDOS_URL: http://pedidos:8000
+      PAGAMENTOS_URL: http://pagamentos:8000
       AGENT_URL: http://agente:8000
       AGENT_CONTROL_TOKEN: ${AGENT_CONTROL_TOKEN:?Execute python preparar_ambiente.py}
       MAX_ATTEMPTS: "2"
       FAILURE_THRESHOLD: "5"
       COOLDOWN_SECONDS: "5"
     depends_on:
-      - instavel
-      - normal
-      - carga
+      - estoque
+      - pedidos
+      - pagamentos
 
   agente:
     build: ./agente
     ports:
       - "127.0.0.1:8005:8000"
     environment:
-      NORMAL_URL: http://normal:8000
-      UNSTABLE_URL: http://instavel:8000
-      ERROR_URL: http://carga:8000
+      PEDIDOS_URL: http://pedidos:8000
+      ESTOQUE_URL: http://estoque:8000
+      PAGAMENTOS_URL: http://pagamentos:8000
       GATEWAY_URL: http://protecao:8000
       LOG_DB_PATH: /data/observabilidade.db
       AGENT_CONTROL_TOKEN: ${AGENT_CONTROL_TOKEN:?Execute python preparar_ambiente.py}
@@ -102,12 +102,12 @@ services:
       OLLAMA_MODEL: qwen2.5:1.5b-instruct-q4_K_M
     volumes:
       - agent_data:/data
-      - ./carga:/source/carga:ro
-      - ./instavel:/source/instavel:ro
+      - ./pagamentos:/source/pagamentos:ro
+      - ./estoque:/source/estoque:ro
     depends_on:
-      - normal
-      - instavel
-      - carga
+      - pedidos
+      - estoque
+      - pagamentos
       - protecao
 
 volumes:

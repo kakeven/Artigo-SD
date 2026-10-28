@@ -10,9 +10,9 @@ import httpx
 class RoutingService:
     def __init__(self, event_logger):
         self.targets = {
-            "normal": os.getenv("NORMAL_URL", "http://normal:8000"),
-            "instavel": os.getenv("BACKEND_URL", "http://instavel:8000"),
-            "carga": os.getenv("ERROR_URL", "http://carga:8000"),
+            "pedidos": os.getenv("PEDIDOS_URL", "http://pedidos:8000"),
+            "estoque": os.getenv("ESTOQUE_URL", "http://estoque:8000"),
+            "pagamentos": os.getenv("PAGAMENTOS_URL", "http://pagamentos:8000"),
         }
         self.fallback = {name: False for name in self.targets}
         self.lock = Lock()
@@ -24,7 +24,7 @@ class RoutingService:
             return dict(self.fallback)
 
     def set_fallback(self, target: str, enabled: bool) -> dict:
-        if target not in ("instavel", "carga"):
+        if target not in ("estoque", "pagamentos"):
             raise ValueError("Alvo nao permite desvio")
         with self.lock:
             self.fallback[target] = enabled
@@ -35,8 +35,8 @@ class RoutingService:
         if target not in self.targets:
             raise ValueError("Alvo desconhecido")
         with self.lock:
-            served_by = "normal" if self.fallback[target] else target
-        params = {"auto": "true"} if served_by == "instavel" else None
+            served_by = "pedidos" if self.fallback[target] else target
+        params = {"auto": "true"} if served_by == "estoque" else None
         try:
             response = self.client.get(
                 f"{self.targets[served_by]}/work",

@@ -4,7 +4,7 @@ Este documento explica como o agente atua na loja de roupas simulada e o que mud
 
 ## O que as três versões têm em comum
 
-Um pedido passa pelo serviço de pedidos (`normal`), pela reserva de estoque (`instavel`) e pelo pagamento fictício (`carga`). A comparação ativa uma causa técnica em **um** dos dois últimos serviços por episódio. Os serviços registram eventos JSON com horário, serviço, status HTTP, nome do erro e ID de correlação. O agente consulta `/events` aproximadamente a cada segundo e guarda os eventos em SQLite.
+Um pedido passa pelo serviço de pedidos (`pedidos`), pela reserva de estoque (`estoque`) e pelo pagamento fictício (`pagamentos`). A comparação ativa uma causa técnica em **um** dos dois últimos serviços por episódio. Os serviços registram eventos JSON com horário, serviço, status HTTP, nome do erro e ID de correlação. O agente consulta `/events` aproximadamente a cada segundo e guarda os eventos em SQLite.
 
 Nas três estratégias, a detecção é feita pela **mesma Random Forest**. Ela foi treinada ao iniciar o agente com sequências sintéticas de respostas normais, intermitentes e continuamente falhas. Para cada sequência recente, calcula quatro características: proporção de respostas 5xx, maior série consecutiva de erros, frequência de alternância entre sucesso e erro e resultado da última resposta. O classificador indica `normal`, `intermittent` ou `continuous`, com uma confiança.
 
@@ -30,8 +30,8 @@ Pedido → evento do serviço → coleta no SQLite → Random Forest detecta o p
 
 | Serviço | Ação escolhida |
 | --- | --- |
-| Estoque (`instavel`) | `disable_simulated_fault` |
-| Pagamento (`carga`) | `reset_overload` |
+| Estoque (`estoque`) | `disable_simulated_fault` |
+| Pagamento (`pagamentos`) | `reset_overload` |
 
 **Passo a passo:** o agente coleta respostas recentes, classifica o padrão com a Random Forest, seleciona a ação padrão do serviço, chama `/repair` e verifica a resposta. Ele não consulta casos anteriores nem Qwen.
 
@@ -45,7 +45,7 @@ O nome `rf` identifica a estratégia de referência. Tecnicamente, **a Random Fo
 
 **Passo a passo:** após a detecção, o agente procura uma ação já verificada pelo menos **três vezes** para o mesmo serviço e nome de erro. Se encontrar uma ação permitida, reutiliza essa ação. Se não encontrar, aplica a mesma regra fixa da estratégia `rf`. Em seguida chama `/repair`, verifica o serviço e registra o resultado. Um novo sucesso aumenta a contagem do caso na memória; uma tentativa sem verificação positiva não aumenta.
 
-**Exemplo:** a memória preparada para a comparação contém `carga + OverloadError → reset_overload`, com três reparos verificados. Quando a sobrecarga reaparece, a ação vem da memória. Para `DependencyTimeoutError`, não havia caso preparado: a estratégia recorreu à regra fixa `reset_overload`, que não corrigiu essa causa.
+**Exemplo:** a memória preparada para a comparação contém `pagamentos + OverloadError → reset_overload`, com três reparos verificados. Quando a sobrecarga reaparece, a ação vem da memória. Para `DependencyTimeoutError`, não havia caso preparado: a estratégia recorreu à regra fixa `reset_overload`, que não corrigiu essa causa.
 
 Essa memória **não altera os pesos** da Random Forest. Ela é uma tabela de experiências verificadas. O benefício depende da existência de um caso correspondente; para um erro novo, o comportamento volta a ser o da regra padrão.
 

@@ -33,7 +33,7 @@ def run_episode(token: str, index: int) -> dict:
         raise RuntimeError(f"Falha ao reiniciar episodio {index}: HTTP {status}")
     episode_start = episode["episode_started_at"]
 
-    normal = run_target("normal", 8)
+    normal = run_target("pedidos", 8)
     for _ in range(12):
         request_json("http://127.0.0.1:8002/work?fail=false", headers={"X-Request-ID": str(uuid4())})
     time.sleep(1.2)
@@ -43,8 +43,8 @@ def run_episode(token: str, index: int) -> dict:
     ]
     false_alarm = bool(healthy_decisions)
 
-    unstable = run_target("instavel", 22)
-    error = run_target("carga", 22)
+    unstable = run_target("estoque", 22)
+    error = run_target("pagamentos", 22)
     wait_for_actions()
     _, final_status = request_json(f"{AGENT}/status")
     decisions = [
@@ -52,8 +52,8 @@ def run_episode(token: str, index: int) -> dict:
     ]
     by_target = {decision["target"]: decision for decision in decisions}
     truth = [
-        {"root_service": "instavel", "fault_type": "intermittent", "started_at": unstable["started_at"]},
-        {"root_service": "carga", "fault_type": "continuous", "started_at": error["started_at"]},
+        {"root_service": "estoque", "fault_type": "intermittent", "started_at": unstable["started_at"]},
+        {"root_service": "pagamentos", "fault_type": "continuous", "started_at": error["started_at"]},
     ]
     delays = []
     for item in truth:
@@ -65,19 +65,19 @@ def run_episode(token: str, index: int) -> dict:
         "index": index,
         "episode_started_at": episode_start,
         "healthy_control": {
-            "normal_requests": normal["requests"],
+            "pedidos_requests": normal["requests"],
             "unstable_healthy_requests": 12,
             "false_alarm": false_alarm,
             "predictions": healthy_status["predictions"],
         },
         "faults": truth,
-        "results": {"instavel": unstable, "carga": error},
+        "results": {"estoque": unstable, "pagamentos": error},
         "decisions": decisions,
         "detected": sum(item["root_service"] in by_target for item in truth),
         "root_cause_correct": sum(
             by_target.get(item["root_service"], {}).get("predicted_type") == item["fault_type"]
             and by_target.get(item["root_service"], {}).get("action") == (
-                "disable_simulated_fault" if item["root_service"] == "instavel" else "reset_overload"
+                "disable_simulated_fault" if item["root_service"] == "estoque" else "reset_overload"
             ) for item in truth
         ),
         "remediation_verified": sum(

@@ -29,13 +29,13 @@ def run_comparison(order_count: int) -> dict:
     training = []
     for trial in range(3):
         result = run("rf", "overload", order_count)
-        verified = any(decision["target"] == "carga" and decision["verified"] for decision in result["decisions"])
+        verified = any(decision["target"] == "pagamentos" and decision["verified"] for decision in result["decisions"])
         if not verified:
             raise RuntimeError(f"Preparacao da memoria falhou na repeticao {trial + 1}")
         training.append({"cause": "overload", "verified": True})
     _, state = request_json(f"{AGENT}/status")
     baseline = state["memory"]
-    if not any(case["target"] == "carga" and case["error_name"] == "OverloadError"
+    if not any(case["target"] == "pagamentos" and case["error_name"] == "OverloadError"
                and case["verified_count"] >= 3 for case in baseline):
         raise RuntimeError("A memoria nao registrou os tres reparos verificados")
 

@@ -1,4 +1,4 @@
-"""Politica de protecao das chamadas ao servico instavel."""
+"""Politica de protecao das chamadas ao servico de estoque."""
 
 import os
 import random
@@ -61,7 +61,7 @@ class CircuitBreaker:
 
 class ProtectedCaller:
     def __init__(self):
-        self.backend_url = os.getenv("BACKEND_URL", "http://instavel:8000")
+        self.backend_url = os.getenv("ESTOQUE_URL", "http://estoque:8000")
         self.timeout = float(os.getenv("UPSTREAM_TIMEOUT_SECONDS", "1"))
         self.max_attempts = int(os.getenv("MAX_ATTEMPTS", "2"))
         self.breaker = CircuitBreaker(

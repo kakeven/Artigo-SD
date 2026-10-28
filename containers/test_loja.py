@@ -55,9 +55,9 @@ class LocalClient:
 
 class ShopFlowTest(unittest.TestCase):
     def setUp(self):
-        self.inventory = load("instavel")
-        self.payment = load("carga")
-        self.orders = load("normal")
+        self.inventory = load("estoque")
+        self.payment = load("pagamentos")
+        self.orders = load("pedidos")
         self.orders.client = LocalClient(self.inventory, self.payment)
         self.request = SimpleNamespace(headers={})
 
@@ -164,11 +164,11 @@ class ShopReportTest(unittest.TestCase):
         self.assertNotIn("<script>alert(1)</script>", html)
 
     def test_comparison_report_keeps_episodes_separate_without_ids(self):
-        episodes = [{"strategy": strategy, "cause": cause, "target": "carga",
+        episodes = [{"strategy": strategy, "cause": cause, "target": "pagamentos",
                      "episode_started_at": "2026-10-28T19:00:00+00:00",
                      "orders": [{"number": number, "status": "confirmed", "request_id": "secret-id"}
                                 for number in range(1, 5)],
-                     "decisions": [{"target": "carga", "verified": True, "action": "reset_overload",
+                     "decisions": [{"target": "pagamentos", "verified": True, "action": "reset_overload",
                                     "strategy": "rf_fallback", "timestamp": "2026-10-28T19:00:01+00:00"}]}
                     for strategy in ("rf", "memory", "qwen_memory")
                     for cause in ("overload", "dependency_timeout", "dependency_unavailable",
