@@ -17,6 +17,7 @@ requests_total = 0
 error_enabled = True
 fault_mode = "overload"
 control_token = os.getenv("AGENT_CONTROL_TOKEN", "")
+charges = {}
 
 ERROR_NAMES = {"overload": "OverloadError", "dependency_timeout": "DependencyTimeoutError"}
 REPAIR_ACTIONS = {"overload": "reset_overload", "dependency_timeout": "restore_dependency"}
@@ -33,7 +34,12 @@ class RepairAction(BaseModel):
     reason: str = Field(min_length=3, max_length=200)
 
 
-def log_event(request_id: str, status: int, error_name: str | None = None):
+class ChargeRequest(BaseModel):
+    order_id: str = Field(min_length=1, max_length=64)
+    amount_cents: int = Field(ge=1)
+
+
+def log_event(request_id: str, status: int, error_name: str | None = None, scenario: str = "agent_demo"):
     global sequence
     with lock:
         sequence += 1
@@ -42,6 +48,7 @@ def log_event(request_id: str, status: int, error_name: str | None = None):
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "service": "carga",
             "event": "service_response",
+            "scenario": scenario,
             "request_id": request_id,
             "status": status,
             "error_name": error_name,
@@ -69,6 +76,40 @@ def work(request: Request):
     if status == 503:
         raise HTTPException(status_code=503, detail=error_name)
     return {"service": "carga", "status": "ok", "fault_active": False}
+
+
+@app.post("/payments/charges")
+def charge_payment(action: ChargeRequest, request: Request):
+    request_id = (request.headers.get("x-request-id") or str(uuid4()))[:128]
+    with lock:
+        existing = charges.get(action.order_id)
+        if existing:
+            status = 200 if existing["amount_cents"] == action.amount_cents else 409
+            error_name = None
+            result = dict(existing)
+        elif error_enabled:
+            status = 503
+            error_name = ERROR_NAMES[fault_mode]
+            result = None
+        else:
+            status = 200
+            error_name = None
+            result = {"payment_id": str(uuid4()), "order_id": action.order_id,
+                      "amount_cents": action.amount_cents, "status": "authorized"}
+            charges[action.order_id] = result
+    log_event(request_id, status, error_name, "shop_order")
+    if status != 200:
+        raise HTTPException(status_code=status, detail=error_name or "Valor inconsistente")
+    return result
+
+
+@app.get("/payments/charges/{order_id}")
+def payment_status(order_id: str):
+    with lock:
+        charge = charges.get(order_id)
+        if charge is None:
+            raise HTTPException(status_code=404, detail="Pagamento nao encontrado")
+        return dict(charge)
 
 
 @app.get("/fault")
@@ -110,13 +151,14 @@ def repair(action: RepairAction, authorization: str | None = Header(default=None
 @app.get("/stats")
 def stats():
     with lock:
-        return {"total": requests_total, "fault_enabled": error_enabled}
+        return {"total": requests_total, "fault_enabled": error_enabled, "authorized_payments": len(charges)}
 
 
 @app.get("/events")
-def events(limit: int = Query(default=100, ge=1, le=500), after: int = Query(default=0, ge=0)):
+def events(limit: int = Query(default=100, ge=1, le=500), after: int = Query(default=0, ge=0), request_id: str | None = None):
     with lock:
-        selected = [event for event in events_buffer if event["sequence"] > after]
+        selected = [event for event in events_buffer if event["sequence"] > after and
+                    (request_id is None or event["request_id"] == request_id)]
     return selected[:limit] if after else selected[-limit:]
 
 

@@ -2,6 +2,48 @@
 
 Este projeto é um mini sistema funcional para o artigo sobre **observabilidade**. A proposta é provocar falhas em microserviços, acompanhar seus efeitos por logs e métricas e comparar o comportamento antes e depois de uma correção. Os dois cenários iniciais são **tempestade de retentativas** e **falha em cascata**, descritos em [Principais causas de falhas](Pesquisa/Principais%20causas%20de%20falhas.pdf).
 
+## Sistema emulado: loja de roupas
+
+O laboratório também emula uma **loja de roupas**. O cliente escolhe uma peça, o tamanho (`P`, `M` ou `G`) e a quantidade. Um pedido percorre três serviços: `normal` oferece o catálogo e coordena o pedido, `instavel` reserva o estoque da peça no tamanho escolhido e `carga` autoriza um pagamento fictício. O pagamento não movimenta dinheiro. As falhas de estoque e pagamento afetam pedidos dentro da simulação, produzem os mesmos eventos observados pelo agente e podem ser reparadas por ele.
+
+```text
+cliente ── POST /orders ──► normal (pedidos e catálogo)
+                              ├──► instavel (reserva de estoque)
+                              └──► carga (pagamento simulado)
+                                      │
+                eventos JSON ◄────────┘
+                     │
+                     ▼
+                agente → diagnóstico → reparo → verificação
+```
+
+O fluxo é: **escolha da roupa e do tamanho → criação do pedido → reserva do estoque por tamanho → autorização fictícia do pagamento → confirmação**. Se o pagamento retornar erro, o serviço de pedidos tenta liberar a reserva; uma falha nessa compensação aparece como `compensation_pending`. Se uma resposta de rede se perder, o pedido fica em `pending_reconciliation`, pois não é seguro presumir se a operação ocorreu. Cada pedido possui um ID e propaga `X-Request-ID` para correlacionar os eventos. O estado da loja fica em memória e reinicia com os contêineres; o SQLite do agente persiste eventos e decisões. A simulação termina na confirmação; ainda não inclui separação, transporte ou entrega da roupa.
+
+Após subir os serviços, veja o catálogo e envie um pedido:
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:8001/products
+Invoke-RestMethod http://127.0.0.1:8002/inventory
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8001/orders -ContentType application/json -Body '{"sku":"camiseta-basica","size":"M","quantity":1}'
+```
+
+Para preparar os cinco contêineres, executar automaticamente os pedidos e gerar o relatório em **um comando**, use:
+
+```powershell
+python containers/executar_loja.py
+```
+
+O script cria 22 pedidos durante as falhas, aguarda o agente e envia mais três pedidos para conferir o resultado. Ele salva os dados em `containers/resultados/loja_*.json` e gera um **relatório visual HTML** com resumo, sequência dos pedidos, narrativa do incidente, ações do agente e explicação de cada resultado. Abra o arquivo `.html` indicado no terminal em um navegador de PC. Use `--sem-build` para reutilizar as imagens Docker; `--strategy rf|memory|qwen_memory` e `--cause overload|dependency_timeout` permitem comparar decisões. Se os contêineres já estiverem ativos, `python containers/demo_loja.py` executa somente o episódio. Pedidos individuais podem retornar 503 enquanto a falha estiver ativa; após um reparo verificado, novas tentativas podem ser confirmadas. Para consultar um pedido, use `GET http://127.0.0.1:8001/orders/{order_id}`.
+
+Veja um [exemplo de relatório da loja de roupas](docs/exemplos/loja_roupas.html), acompanhado dos [dados da execução](docs/exemplos/loja_roupas.json). Os relatórios de novas execuções são temporários e ficam em `containers/resultados/`.
+
+Para transformar um JSON anterior em relatório visual:
+
+```powershell
+$json = Get-ChildItem containers/resultados/loja_*.json | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+python containers/relatorio_loja.py $json.FullName
+```
+
 Agora há também um **agente com modelo local**: ele acompanha os logs de três contêineres, classifica padrões de falha, desativa a falha simulada no próprio serviço e verifica se esse serviço voltou a responder. O projeto mantém os experimentos anteriores de retentativas e cascata.
 
 ## Demonstração do agente
@@ -279,4 +321,4 @@ A rota `/health` do serviço instável retorna falha após 30 segundos enquanto 
 
 ## Limites
 
-Este é um protótipo de processo único. Estado, eventos recentes e contadores ficam em memória e reiniciam com o serviço. O primeiro experimento mede **amplificação de chamadas durante indisponibilidade total**. O segundo demonstra **propagação da lentidão por capacidade compartilhada**. Ainda não há armazenamento persistente de logs, métricas de produção, rastreamento distribuído completo ou múltiplos níveis de dependência. O parâmetro `fail` existe somente para controlar a simulação.
+Este é um protótipo com uma instância por serviço. Estoque, pedidos, pagamentos, eventos recentes e contadores ficam em memória e reiniciam com os serviços; o agente persiste sua cópia dos eventos e suas decisões em SQLite. O primeiro experimento mede **amplificação de chamadas durante indisponibilidade total**. O segundo demonstra **propagação da lentidão por capacidade compartilhada**. Ainda não há métricas de produção, rastreamento distribuído completo ou múltiplos níveis de dependência. O parâmetro `fail` existe somente para controlar a simulação.

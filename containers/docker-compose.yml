@@ -7,6 +7,9 @@ services:
       - "127.0.0.1:8001:8000"
     environment:
       BACKEND_URL: http://instavel:8000
+      INVENTORY_URL: http://instavel:8000
+      PAYMENT_URL: http://carga:8000
+      AGENT_CONTROL_TOKEN: ${AGENT_CONTROL_TOKEN:?Execute python preparar_ambiente.py}
     labels:
       monitor: "true"
       tipo: "normal"

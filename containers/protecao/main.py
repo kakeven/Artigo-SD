@@ -14,6 +14,7 @@ from routing import RoutingService
 app = FastAPI(title="Protecao contra tempestade de retentativas")
 caller = ProtectedCaller()
 normal_url = os.getenv("NORMAL_URL", "http://normal:8000")
+error_url = os.getenv("ERROR_URL", "http://carga:8000")
 agent_url = os.getenv("AGENT_URL", "http://agente:8000")
 router_service = RoutingService(caller.log_event)
 control_token = os.getenv("AGENT_CONTROL_TOKEN", "")
@@ -66,6 +67,16 @@ def observability(limit: int = Query(default=100, ge=1, le=500), request_id: str
         result["normal"] = {"reachable": True, "stats": normal_stats, "events": normal_events}
     except (httpx.HTTPError, ValueError) as error:
         result["normal"] = {"reachable": False, "error": type(error).__name__}
+    try:
+        payment_stats = caller.client.get(f"{error_url}/stats").json()
+        payment_events = caller.client.get(f"{error_url}/events", params=event_params).json()
+        result["payment"] = {"reachable": True, "stats": payment_stats, "events": payment_events}
+    except (httpx.HTTPError, ValueError) as error:
+        result["payment"] = {"reachable": False, "error": type(error).__name__}
+    try:
+        result["shop"] = {"reachable": True, "stats": caller.client.get(f"{normal_url}/shop/stats").json()}
+    except (httpx.HTTPError, ValueError) as error:
+        result["shop"] = {"reachable": False, "error": type(error).__name__}
     try:
         result["agent"] = {"reachable": True, "status": caller.client.get(f"{agent_url}/status").json()}
     except (httpx.HTTPError, ValueError) as error:

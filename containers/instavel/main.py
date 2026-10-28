@@ -7,6 +7,7 @@ import json
 import hmac
 import os
 from uuid import uuid4
+from typing import Literal
 from pydantic import BaseModel, Field
 
 app = FastAPI(title="Container Instável")
@@ -19,11 +20,23 @@ event_sequence = 0
 auto_counter = 0
 auto_fault_enabled = True
 control_token = os.getenv("AGENT_CONTROL_TOKEN", "")
+inventory = {
+    "camiseta-basica": {"P": 30, "M": 30, "G": 30},
+    "moletom-capuz": {"P": 20, "M": 20, "G": 20},
+}
+reservations = {}
 
 
 class FaultAction(BaseModel):
     enabled: bool
     reason: str = Field(min_length=3, max_length=200)
+
+
+class ReservationRequest(BaseModel):
+    order_id: str = Field(min_length=1, max_length=64)
+    sku: str
+    size: Literal["P", "M", "G"]
+    quantity: int = Field(ge=1, le=10)
 
 
 def registrar(evento: str, request_id: str, scenario: str, **details):
@@ -93,6 +106,56 @@ def work(request: Request, fail: bool = False, auto: bool = False, delay_ms: int
     if fail:
         raise HTTPException(status_code=503, detail="Falha simulada no servico")
     return {"status": "ok", "fault_active": fault_active}
+
+
+@app.get("/inventory")
+def inventory_state():
+    with contador_lock:
+        return {"available": {sku: dict(sizes) for sku, sizes in inventory.items()}, "reservations": len(reservations)}
+
+
+@app.post("/inventory/reservations")
+def reserve_stock(action: ReservationRequest, request: Request):
+    global auto_counter
+    request_id = (request.headers.get("x-request-id") or str(uuid4()))[:128]
+    with contador_lock:
+        existing = reservations.get(action.order_id)
+        if existing:
+            if existing != (action.sku, action.size, action.quantity):
+                status, error_name = 409, None
+            else:
+                status, error_name = 200, None
+        else:
+            auto_counter += 1
+            failed = auto_fault_enabled and auto_counter % 2 == 0
+            if failed:
+                status, error_name = 503, "IntermittentBackendError"
+            elif action.sku not in inventory or action.size not in inventory[action.sku]:
+                status, error_name = 404, None
+            elif inventory[action.sku][action.size] < action.quantity:
+                status, error_name = 409, None
+            else:
+                inventory[action.sku][action.size] -= action.quantity
+                reservations[action.order_id] = (action.sku, action.size, action.quantity)
+                status, error_name = 200, None
+    registrar("backend_response", request_id, "shop_order", status=status, error_name=error_name,
+              sku=action.sku, size=action.size)
+    if status != 200:
+        raise HTTPException(status_code=status, detail=error_name or "Estoque indisponivel")
+    return {"order_id": action.order_id, "sku": action.sku, "size": action.size,
+            "quantity": action.quantity, "status": "reserved"}
+
+
+@app.post("/inventory/reservations/{order_id}/release")
+def release_stock(order_id: str, authorization: str | None = Header(default=None)):
+    if not control_token or not hmac.compare_digest(authorization or "", f"Bearer {control_token}"):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    with contador_lock:
+        reservation = reservations.pop(order_id, None)
+        if reservation:
+            sku, size, quantity = reservation
+            inventory[sku][size] += quantity
+    return {"order_id": order_id, "released": reservation is not None}
 
 
 @app.get("/fault")

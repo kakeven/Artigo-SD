@@ -1,0 +1,300 @@
+{
+  "shop_type": "clothing",
+  "strategy": "rf",
+  "cause": "overload",
+  "episode_started_at": "2026-10-28T19:57:12.563603+00:00",
+  "orders": [
+    {
+      "number": 1,
+      "http_status": 503,
+      "order_id": "3bbe0dce-4c3c-41cb-8222-b77543ce321a",
+      "request_id": "22860ab7-8638-4701-9bcb-373ad4b6b990",
+      "sku": "moletom-capuz",
+      "size": "P",
+      "quantity": 1,
+      "status": "payment_unavailable"
+    },
+    {
+      "number": 2,
+      "http_status": 503,
+      "order_id": "b8806393-a80f-4170-9fa0-42dc2f86f343",
+      "request_id": "f975fc70-930a-4071-8570-d4afbabd436e",
+      "sku": "camiseta-basica",
+      "size": "M",
+      "quantity": 1,
+      "status": "inventory_unavailable"
+    },
+    {
+      "number": 3,
+      "http_status": 503,
+      "order_id": "9f02b730-728b-4d8c-8d83-b3db5603cfe2",
+      "request_id": "aaad9898-2a71-46f4-9227-e05398b39e76",
+      "sku": "camiseta-basica",
+      "size": "G",
+      "quantity": 1,
+      "status": "payment_unavailable"
+    },
+    {
+      "number": 4,
+      "http_status": 503,
+      "order_id": "cc7a54ce-aacc-4018-9d85-58841cf9dd17",
+      "request_id": "8509ad2a-83ad-447b-a33c-1de92355e3a9",
+      "sku": "camiseta-basica",
+      "size": "P",
+      "quantity": 1,
+      "status": "inventory_unavailable"
+    },
+    {
+      "number": 5,
+      "http_status": 503,
+      "order_id": "67ab1fcd-8364-412b-be78-cf558f5e66fd",
+      "request_id": "1f45629d-bbd9-4b34-aaa0-efca2b0df975",
+      "sku": "moletom-capuz",
+      "size": "M",
+      "quantity": 1,
+      "status": "payment_unavailable"
+    },
+    {
+      "number": 6,
+      "http_status": 503,
+      "order_id": "fda2e3af-5866-4506-9e0b-a84710e353dd",
+      "request_id": "277edbe4-1eed-40f3-ba0e-b3526fce9af0",
+      "sku": "camiseta-basica",
+      "size": "G",
+      "quantity": 1,
+      "status": "inventory_unavailable"
+    },
+    {
+      "number": 7,
+      "http_status": 503,
+      "order_id": "bc94eccb-37f2-4738-8805-c91b73f02feb",
+      "request_id": "2d9aca8e-a9e2-4291-b039-7e2753106386",
+      "sku": "camiseta-basica",
+      "size": "P",
+      "quantity": 1,
+      "status": "payment_unavailable"
+    },
+    {
+      "number": 8,
+      "http_status": 503,
+      "order_id": "9379e4c9-10bf-423f-84d9-8bc09f850e2b",
+      "request_id": "4e9fad11-18a2-4631-ade6-864b4af78211",
+      "sku": "camiseta-basica",
+      "size": "M",
+      "quantity": 1,
+      "status": "payment_unavailable"
+    },
+    {
+      "number": 9,
+      "http_status": 503,
+      "order_id": "60674a82-210b-4ea3-a43d-9405a8c88562",
+      "request_id": "f6c81359-5d85-4198-ad97-c2e9b6b58e29",
+      "sku": "moletom-capuz",
+      "size": "G",
+      "quantity": 1,
+      "status": "payment_unavailable"
+    },
+    {
+      "number": 10,
+      "http_status": 503,
+      "order_id": "769aedd1-bc73-49ca-9013-a7cf86ad729f",
+      "request_id": "fa571109-5b3f-4db1-95df-c8785761000e",
+      "sku": "camiseta-basica",
+      "size": "P",
+      "quantity": 1,
+      "status": "payment_unavailable"
+    },
+    {
+      "number": 11,
+      "http_status": 503,
+      "order_id": "d46c2637-2e67-4488-889a-e6f00fde6420",
+      "request_id": "54360eb8-6eb6-4120-849e-d2cfd8092591",
+      "sku": "camiseta-basica",
+      "size": "M",
+      "quantity": 1,
+      "status": "payment_unavailable"
+    },
+    {
+      "number": 12,
+      "http_status": 503,
+      "order_id": "b57abe11-e209-4d7c-8aab-b2624d0d14a5",
+      "request_id": "e6590b6c-7c73-434a-9d0d-af1a4496b304",
+      "sku": "camiseta-basica",
+      "size": "G",
+      "quantity": 1,
+      "status": "payment_unavailable"
+    },
+    {
+      "number": 13,
+      "http_status": 201,
+      "order_id": "df9745de-fb33-40ce-aa3d-86cc1f89b28e",
+      "request_id": "9eddccd7-b849-4040-aa92-42a4a9928757",
+      "sku": "moletom-capuz",
+      "size": "P",
+      "quantity": 1,
+      "status": "confirmed"
+    },
+    {
+      "number": 14,
+      "http_status": 201,
+      "order_id": "44f01319-86c1-4455-9483-1fd3d0e7cc99",
+      "request_id": "61380d4b-db35-4bf2-bc62-9083fdd0833c",
+      "sku": "camiseta-basica",
+      "size": "M",
+      "quantity": 1,
+      "status": "confirmed"
+    },
+    {
+      "number": 15,
+      "http_status": 201,
+      "order_id": "3bc42cec-2a03-46db-af29-dcdc749a72b4",
+      "request_id": "a054223e-14b8-448e-a546-a9bb28263df7",
+      "sku": "camiseta-basica",
+      "size": "G",
+      "quantity": 1,
+      "status": "confirmed"
+    },
+    {
+      "number": 16,
+      "http_status": 201,
+      "order_id": "513256da-6292-4ac3-9d7c-24eb58705e6b",
+      "request_id": "2b138e1e-c677-434f-bc7a-4b18d9f2f7b8",
+      "sku": "camiseta-basica",
+      "size": "P",
+      "quantity": 1,
+      "status": "confirmed"
+    },
+    {
+      "number": 17,
+      "http_status": 201,
+      "order_id": "816c456d-d3d9-4536-bf79-1fb2d67d00ee",
+      "request_id": "c73e7b22-6e72-42c5-8f2c-d80835b6fa3f",
+      "sku": "moletom-capuz",
+      "size": "M",
+      "quantity": 1,
+      "status": "confirmed"
+    },
+    {
+      "number": 18,
+      "http_status": 201,
+      "order_id": "3b79e47c-70ea-4349-998f-fc93347dc5f0",
+      "request_id": "67213c63-e40a-484e-bfbe-1b2ba3b12af9",
+      "sku": "camiseta-basica",
+      "size": "G",
+      "quantity": 1,
+      "status": "confirmed"
+    },
+    {
+      "number": 19,
+      "http_status": 201,
+      "order_id": "3dea0783-6a0b-4071-b16a-5ef39d470846",
+      "request_id": "f25609b1-6d03-41fa-8a75-f00bd8758310",
+      "sku": "camiseta-basica",
+      "size": "P",
+      "quantity": 1,
+      "status": "confirmed"
+    },
+    {
+      "number": 20,
+      "http_status": 201,
+      "order_id": "9b29034d-5323-41d3-ace3-bec5e1b058de",
+      "request_id": "7b166164-f2af-4f4f-a2f6-bf1af23102f6",
+      "sku": "camiseta-basica",
+      "size": "M",
+      "quantity": 1,
+      "status": "confirmed"
+    },
+    {
+      "number": 21,
+      "http_status": 201,
+      "order_id": "fae32ad9-2646-47ea-a71f-50a48bdaba43",
+      "request_id": "d4415dd3-6bbf-4a06-978d-1cd96cf1a305",
+      "sku": "moletom-capuz",
+      "size": "G",
+      "quantity": 1,
+      "status": "confirmed"
+    },
+    {
+      "number": 22,
+      "http_status": 201,
+      "order_id": "8ae81a3f-b93c-440d-8985-def134cc766d",
+      "request_id": "cbdfe95e-3208-4532-97a4-41905c46f637",
+      "sku": "camiseta-basica",
+      "size": "P",
+      "quantity": 1,
+      "status": "confirmed"
+    },
+    {
+      "number": 23,
+      "http_status": 201,
+      "order_id": "86cb0ef8-6eba-48e0-bc9f-39f924c17617",
+      "request_id": "9f184d1a-79bd-4e28-afd6-9a04f707987b",
+      "sku": "camiseta-basica",
+      "size": "M",
+      "quantity": 1,
+      "status": "confirmed"
+    },
+    {
+      "number": 24,
+      "http_status": 201,
+      "order_id": "ea274ed3-e2a3-4ebc-ab1e-4d428e9d6385",
+      "request_id": "f0a53d46-ed4d-4fc0-8365-5c8af6adcc6e",
+      "sku": "camiseta-basica",
+      "size": "G",
+      "quantity": 1,
+      "status": "confirmed"
+    },
+    {
+      "number": 25,
+      "http_status": 201,
+      "order_id": "bde5daf8-ed2d-4152-9cfc-da87b83d5494",
+      "request_id": "329237c8-9bee-4fbc-afe0-95c3fef17bfc",
+      "sku": "moletom-capuz",
+      "size": "P",
+      "quantity": 1,
+      "status": "confirmed"
+    }
+  ],
+  "confirmed": 13,
+  "inventory": {
+    "available": {
+      "camiseta-basica": {
+        "P": 25,
+        "M": 24,
+        "G": 24
+      },
+      "moletom-capuz": {
+        "P": 16,
+        "M": 18,
+        "G": 18
+      }
+    },
+    "reservations": 25
+  },
+  "decisions": [
+    {
+      "id": 118,
+      "timestamp": "2026-10-28T19:57:14.615789+00:00",
+      "target": "carga",
+      "predicted_type": "continuous",
+      "confidence": 1.0,
+      "action": "reset_overload",
+      "verified": 1,
+      "evidence_request_id": "e6590b6c-7c73-434a-9d0d-af1a4496b304",
+      "error_name": "OverloadError",
+      "strategy": "rf_fallback"
+    },
+    {
+      "id": 117,
+      "timestamp": "2026-10-28T19:57:13.512528+00:00",
+      "target": "instavel",
+      "predicted_type": "intermittent",
+      "confidence": 1.0,
+      "action": "disable_simulated_fault",
+      "verified": 1,
+      "evidence_request_id": "277edbe4-1eed-40f3-ba0e-b3526fce9af0",
+      "error_name": "IntermittentBackendError",
+      "strategy": "rf_fallback"
+    }
+  ]
+}

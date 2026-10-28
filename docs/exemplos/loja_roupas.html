@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Relatório da loja de roupas</title>
+  <style>
+    :root { --ink:#173047; --muted:#4d6576; --paper:#f7fafc; --line:#ccd9e2; --blue:#1763a6; --green:#176d4e; --red:#a23d3a; --amber:#91630e; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.5 "Segoe UI", Arial, sans-serif; }
+    main { max-width:1040px; margin:auto; padding:40px 24px 72px; }
+    h1 { font-size:clamp(2rem,4.3vw,3.2rem); letter-spacing:-.045em; line-height:1.08; margin:0 0 14px; }
+    h2 { font-size:1.35rem; letter-spacing:-.02em; margin:0 0 14px; }
+    p { margin:0 0 12px; max-width:72ch; }
+    .intro { color:var(--muted); font-size:1.05rem; }
+    .meta { margin:16px 0 28px; color:var(--muted); display:flex; flex-wrap:wrap; gap:6px 20px; font-size:.9rem; }
+    .verdict { border-left:7px solid var(--blue); background:#e9f2f9; padding:22px 26px; margin:28px 0; }
+    .verdict.recovered { border-color:var(--green); background:#e9f5ee; }
+    .verdict h2 { font-size:clamp(1.45rem,3vw,2.1rem); margin-bottom:7px; }
+    .verdict p { margin:0; }
+    .totals { display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--line); border:1px solid var(--line); margin:0 0 32px; }
+    .total { background:#fff; padding:17px 20px; }
+    .total strong { display:block; font-size:2rem; line-height:1.1; font-variant-numeric:tabular-nums; }
+    .total span { color:var(--muted); }
+    section { margin-top:34px; }
+    .section-note { color:var(--muted); margin-bottom:14px; }
+    .flow { margin:0 0 30px; padding:0; list-style:none; display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+    .flow li { background:#fff; border:1px solid var(--line); padding:14px; font-size:.92rem; }
+    .flow strong { display:block; margin-bottom:5px; }
+    .story { padding-left:24px; max-width:78ch; }
+    .story li { padding-left:5px; margin:0 0 10px; }
+    .sequence { display:flex; flex-wrap:wrap; gap:5px; padding:17px; background:#fff; border:1px solid var(--line); }
+    .step { display:block; width:24px; height:24px; border-radius:3px; }
+    .step.success { background:var(--green); } .step.failure { background:var(--red); } .step.pending { background:var(--amber); }
+    .legend { display:flex; flex-wrap:wrap; gap:8px 20px; margin-top:10px; color:var(--muted); font-size:.9rem; }
+    .key { display:inline-block; width:11px; height:11px; border-radius:2px; margin-right:6px; }
+    .key.success { background:var(--green); } .key.failure { background:var(--red); } .key.pending { background:var(--amber); }
+    .table-wrap { overflow-x:auto; background:#fff; border:1px solid var(--line); }
+    table { width:100%; border-collapse:collapse; font-size:.94rem; }
+    th, td { text-align:left; vertical-align:top; padding:12px 14px; border-bottom:1px solid #e5edf2; }
+    th { background:#edf3f7; font-weight:650; }
+    tr:last-child td { border-bottom:0; }
+    .pill { display:inline-block; padding:2px 8px; border-radius:3px; font-size:.86rem; font-weight:650; white-space:nowrap; }
+    .pill.success { color:var(--green); background:#e3f2e8; } .pill.failure { color:var(--red); background:#f9e9e8; } .pill.pending { color:var(--amber); background:#fbf1d8; }
+    .explanation { display:block; color:var(--muted); font-size:.86rem; margin-top:4px; }
+    .number { font-variant-numeric:tabular-nums; font-weight:650; width:58px; }
+    .code { font: .82rem/1.45 Consolas, "Courier New", monospace; overflow-wrap:anywhere; max-width:310px; }
+    .empty { padding:22px; color:var(--muted); }
+    footer { border-top:1px solid var(--line); margin-top:40px; padding-top:18px; color:var(--muted); font-size:.87rem; }
+    @media print { body { background:#fff; } main { padding:0; } .verdict,.totals,.sequence,.table-wrap { print-color-adjust:exact; } tr { break-inside:avoid; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>O que aconteceu com os pedidos de roupas</h1>
+      <p class="intro">O cliente escolhe uma peça e um tamanho. Serviços separados reservam o estoque e autorizam um pagamento fictício; o agente observa as falhas e tenta restabelecer o fluxo.</p>
+      <div class="meta"><span>28/10/2026 às 16:57 (Brasília)</span><span>Estratégia: Regra padrão</span><span>Causa: Sobrecarga no pagamento</span></div>
+    </header>
+    <section class="verdict recovered" aria-labelledby="result-title">
+      <h2 id="result-title">13 pedidos confirmados entre 25</h2>
+      <p>Os serviços voltaram a confirmar pedidos após o reparo.</p>
+    </section>
+    <div class="totals" aria-label="Resumo dos pedidos">
+      <div class="total"><strong>13</strong><span>Confirmados</span></div>
+      <div class="total"><strong>12</strong><span>Com falha</span></div>
+      <div class="total"><strong>0</strong><span>Pendentes de conferência</span></div>
+    </div>
+    <section aria-labelledby='flow-title'><h2 id='flow-title'>Como funciona a compra</h2><ol class='flow'><li><strong>1. Escolha</strong>Peça, tamanho e quantidade.</li><li><strong>2. Reserva</strong>O serviço de estoque separa as unidades.</li><li><strong>3. Pagamento</strong>Um serviço autoriza o valor fictício.</li><li><strong>4. Confirmação</strong>O pedido é confirmado; se o pagamento falha, o sistema tenta liberar a reserva.</li></ol></section>
+    <section aria-labelledby="progress-title">
+      <h2 id="progress-title">Pedidos na ordem em que ocorreram</h2>
+      <p class="section-note">Cada quadrado representa um pedido. A sequência ajuda a ver quando a operação voltou a funcionar.</p>
+      <div class="sequence" role="img" aria-label="Sequência de 25 pedidos"><span class="step failure" title="Pedido 1: Falha no pagamento" aria-label="Pedido 1: Falha no pagamento"></span><span class="step failure" title="Pedido 2: Falha no estoque" aria-label="Pedido 2: Falha no estoque"></span><span class="step failure" title="Pedido 3: Falha no pagamento" aria-label="Pedido 3: Falha no pagamento"></span><span class="step failure" title="Pedido 4: Falha no estoque" aria-label="Pedido 4: Falha no estoque"></span><span class="step failure" title="Pedido 5: Falha no pagamento" aria-label="Pedido 5: Falha no pagamento"></span><span class="step failure" title="Pedido 6: Falha no estoque" aria-label="Pedido 6: Falha no estoque"></span><span class="step failure" title="Pedido 7: Falha no pagamento" aria-label="Pedido 7: Falha no pagamento"></span><span class="step failure" title="Pedido 8: Falha no pagamento" aria-label="Pedido 8: Falha no pagamento"></span><span class="step failure" title="Pedido 9: Falha no pagamento" aria-label="Pedido 9: Falha no pagamento"></span><span class="step failure" title="Pedido 10: Falha no pagamento" aria-label="Pedido 10: Falha no pagamento"></span><span class="step failure" title="Pedido 11: Falha no pagamento" aria-label="Pedido 11: Falha no pagamento"></span><span class="step failure" title="Pedido 12: Falha no pagamento" aria-label="Pedido 12: Falha no pagamento"></span><span class="step success" title="Pedido 13: Confirmado" aria-label="Pedido 13: Confirmado"></span><span class="step success" title="Pedido 14: Confirmado" aria-label="Pedido 14: Confirmado"></span><span class="step success" title="Pedido 15: Confirmado" aria-label="Pedido 15: Confirmado"></span><span class="step success" title="Pedido 16: Confirmado" aria-label="Pedido 16: Confirmado"></span><span class="step success" title="Pedido 17: Confirmado" aria-label="Pedido 17: Confirmado"></span><span class="step success" title="Pedido 18: Confirmado" aria-label="Pedido 18: Confirmado"></span><span class="step success" title="Pedido 19: Confirmado" aria-label="Pedido 19: Confirmado"></span><span class="step success" title="Pedido 20: Confirmado" aria-label="Pedido 20: Confirmado"></span><span class="step success" title="Pedido 21: Confirmado" aria-label="Pedido 21: Confirmado"></span><span class="step success" title="Pedido 22: Confirmado" aria-label="Pedido 22: Confirmado"></span><span class="step success" title="Pedido 23: Confirmado" aria-label="Pedido 23: Confirmado"></span><span class="step success" title="Pedido 24: Confirmado" aria-label="Pedido 24: Confirmado"></span><span class="step success" title="Pedido 25: Confirmado" aria-label="Pedido 25: Confirmado"></span></div>
+      <div class="legend"><span><i class="key success"></i>Confirmado</span><span><i class="key failure"></i>Falha</span><span><i class="key pending"></i>Pendente</span></div>
+    </section>
+    <section aria-labelledby="story-title">
+      <h2 id="story-title">Como o episódio aconteceu</h2>
+      <ol class="story"><li>O script ativou as falhas simuladas e enviou 22 pedidos automaticamente.</li><li>Estoque: 3 pedidos falharam nesta etapa. O agente identificou falha intermitente e executou: desativar a falha do estoque. A chamada de verificação confirmou que o próprio serviço voltou a responder.</li><li>Pagamento: 9 pedidos falharam nesta etapa. O agente identificou falha contínua e executou: restabelecer o pagamento após sobrecarga. A chamada de verificação confirmou que o próprio serviço voltou a responder. A reserva de estoque foi liberada em 9 pedidos com erro de pagamento.</li><li>Após aguardar as decisões do agente, o script enviou 3 pedidos de verificação; 3 foram confirmados.</li></ol>
+    </section>
+    <section aria-labelledby="agent-title">
+      <h2 id="agent-title">O que o agente fez</h2>
+      <p class="section-note">Uma ação aparece como confirmada apenas quando o próprio serviço voltou a responder.</p>
+      <div class="table-wrap"><table id="agent-table"><thead><tr><th>Serviço</th><th>Diagnóstico</th><th>Ação</th><th>Resultado</th></tr></thead><tbody><tr><td>Estoque</td><td>Falha intermitente</td><td>Desativar a falha do estoque</td><td><span class='pill success'>Recuperação confirmada</span></td></tr><tr><td>Pagamento</td><td>Falha contínua</td><td>Restabelecer o pagamento após sobrecarga</td><td><span class='pill success'>Recuperação confirmada</span></td></tr></tbody></table></div>
+    </section>
+    <section aria-labelledby="orders-title">
+      <h2 id="orders-title">Resultado de cada pedido</h2>
+      <p class="section-note">Use o ID de correlação para localizar os eventos do pedido no painel de observabilidade.</p>
+      <div class="table-wrap"><table><thead><tr><th>Nº</th><th>Peça e tamanho</th><th>Resultado</th><th>ID de correlação</th></tr></thead><tbody><tr><td class='number'>1</td><td>Moletom com capuz<span class='explanation'>Tamanho P</span></td><td><span class='pill failure'>Falha no pagamento</span><span class='explanation'>Serviço de pagamento indisponível; reserva liberada</span></td><td class='code'>22860ab7-8638-4701-9bcb-373ad4b6b990</td></tr><tr><td class='number'>2</td><td>Camiseta básica<span class='explanation'>Tamanho M</span></td><td><span class='pill failure'>Falha no estoque</span><span class='explanation'>O serviço de estoque não respondeu normalmente</span></td><td class='code'>f975fc70-930a-4071-8570-d4afbabd436e</td></tr><tr><td class='number'>3</td><td>Camiseta básica<span class='explanation'>Tamanho G</span></td><td><span class='pill failure'>Falha no pagamento</span><span class='explanation'>Serviço de pagamento indisponível; reserva liberada</span></td><td class='code'>aaad9898-2a71-46f4-9227-e05398b39e76</td></tr><tr><td class='number'>4</td><td>Camiseta básica<span class='explanation'>Tamanho P</span></td><td><span class='pill failure'>Falha no estoque</span><span class='explanation'>O serviço de estoque não respondeu normalmente</span></td><td class='code'>8509ad2a-83ad-447b-a33c-1de92355e3a9</td></tr><tr><td class='number'>5</td><td>Moletom com capuz<span class='explanation'>Tamanho M</span></td><td><span class='pill failure'>Falha no pagamento</span><span class='explanation'>Serviço de pagamento indisponível; reserva liberada</span></td><td class='code'>1f45629d-bbd9-4b34-aaa0-efca2b0df975</td></tr><tr><td class='number'>6</td><td>Camiseta básica<span class='explanation'>Tamanho G</span></td><td><span class='pill failure'>Falha no estoque</span><span class='explanation'>O serviço de estoque não respondeu normalmente</span></td><td class='code'>277edbe4-1eed-40f3-ba0e-b3526fce9af0</td></tr><tr><td class='number'>7</td><td>Camiseta básica<span class='explanation'>Tamanho P</span></td><td><span class='pill failure'>Falha no pagamento</span><span class='explanation'>Serviço de pagamento indisponível; reserva liberada</span></td><td class='code'>2d9aca8e-a9e2-4291-b039-7e2753106386</td></tr><tr><td class='number'>8</td><td>Camiseta básica<span class='explanation'>Tamanho M</span></td><td><span class='pill failure'>Falha no pagamento</span><span class='explanation'>Serviço de pagamento indisponível; reserva liberada</span></td><td class='code'>4e9fad11-18a2-4631-ade6-864b4af78211</td></tr><tr><td class='number'>9</td><td>Moletom com capuz<span class='explanation'>Tamanho G</span></td><td><span class='pill failure'>Falha no pagamento</span><span class='explanation'>Serviço de pagamento indisponível; reserva liberada</span></td><td class='code'>f6c81359-5d85-4198-ad97-c2e9b6b58e29</td></tr><tr><td class='number'>10</td><td>Camiseta básica<span class='explanation'>Tamanho P</span></td><td><span class='pill failure'>Falha no pagamento</span><span class='explanation'>Serviço de pagamento indisponível; reserva liberada</span></td><td class='code'>fa571109-5b3f-4db1-95df-c8785761000e</td></tr><tr><td class='number'>11</td><td>Camiseta básica<span class='explanation'>Tamanho M</span></td><td><span class='pill failure'>Falha no pagamento</span><span class='explanation'>Serviço de pagamento indisponível; reserva liberada</span></td><td class='code'>54360eb8-6eb6-4120-849e-d2cfd8092591</td></tr><tr><td class='number'>12</td><td>Camiseta básica<span class='explanation'>Tamanho G</span></td><td><span class='pill failure'>Falha no pagamento</span><span class='explanation'>Serviço de pagamento indisponível; reserva liberada</span></td><td class='code'>e6590b6c-7c73-434a-9d0d-af1a4496b304</td></tr><tr><td class='number'>13</td><td>Moletom com capuz<span class='explanation'>Tamanho P</span></td><td><span class='pill success'>Confirmado</span><span class='explanation'>Estoque reservado e pagamento autorizado</span></td><td class='code'>9eddccd7-b849-4040-aa92-42a4a9928757</td></tr><tr><td class='number'>14</td><td>Camiseta básica<span class='explanation'>Tamanho M</span></td><td><span class='pill success'>Confirmado</span><span class='explanation'>Estoque reservado e pagamento autorizado</span></td><td class='code'>61380d4b-db35-4bf2-bc62-9083fdd0833c</td></tr><tr><td class='number'>15</td><td>Camiseta básica<span class='explanation'>Tamanho G</span></td><td><span class='pill success'>Confirmado</span><span class='explanation'>Estoque reservado e pagamento autorizado</span></td><td class='code'>a054223e-14b8-448e-a546-a9bb28263df7</td></tr><tr><td class='number'>16</td><td>Camiseta básica<span class='explanation'>Tamanho P</span></td><td><span class='pill success'>Confirmado</span><span class='explanation'>Estoque reservado e pagamento autorizado</span></td><td class='code'>2b138e1e-c677-434f-bc7a-4b18d9f2f7b8</td></tr><tr><td class='number'>17</td><td>Moletom com capuz<span class='explanation'>Tamanho M</span></td><td><span class='pill success'>Confirmado</span><span class='explanation'>Estoque reservado e pagamento autorizado</span></td><td class='code'>c73e7b22-6e72-42c5-8f2c-d80835b6fa3f</td></tr><tr><td class='number'>18</td><td>Camiseta básica<span class='explanation'>Tamanho G</span></td><td><span class='pill success'>Confirmado</span><span class='explanation'>Estoque reservado e pagamento autorizado</span></td><td class='code'>67213c63-e40a-484e-bfbe-1b2ba3b12af9</td></tr><tr><td class='number'>19</td><td>Camiseta básica<span class='explanation'>Tamanho P</span></td><td><span class='pill success'>Confirmado</span><span class='explanation'>Estoque reservado e pagamento autorizado</span></td><td class='code'>f25609b1-6d03-41fa-8a75-f00bd8758310</td></tr><tr><td class='number'>20</td><td>Camiseta básica<span class='explanation'>Tamanho M</span></td><td><span class='pill success'>Confirmado</span><span class='explanation'>Estoque reservado e pagamento autorizado</span></td><td class='code'>7b166164-f2af-4f4f-a2f6-bf1af23102f6</td></tr><tr><td class='number'>21</td><td>Moletom com capuz<span class='explanation'>Tamanho G</span></td><td><span class='pill success'>Confirmado</span><span class='explanation'>Estoque reservado e pagamento autorizado</span></td><td class='code'>d4415dd3-6bbf-4a06-978d-1cd96cf1a305</td></tr><tr><td class='number'>22</td><td>Camiseta básica<span class='explanation'>Tamanho P</span></td><td><span class='pill success'>Confirmado</span><span class='explanation'>Estoque reservado e pagamento autorizado</span></td><td class='code'>cbdfe95e-3208-4532-97a4-41905c46f637</td></tr><tr><td class='number'>23</td><td>Camiseta básica<span class='explanation'>Tamanho M</span></td><td><span class='pill success'>Confirmado</span><span class='explanation'>Estoque reservado e pagamento autorizado</span></td><td class='code'>9f184d1a-79bd-4e28-afd6-9a04f707987b</td></tr><tr><td class='number'>24</td><td>Camiseta básica<span class='explanation'>Tamanho G</span></td><td><span class='pill success'>Confirmado</span><span class='explanation'>Estoque reservado e pagamento autorizado</span></td><td class='code'>f0a53d46-ed4d-4fc0-8365-5c8af6adcc6e</td></tr><tr><td class='number'>25</td><td>Moletom com capuz<span class='explanation'>Tamanho P</span></td><td><span class='pill success'>Confirmado</span><span class='explanation'>Estoque reservado e pagamento autorizado</span></td><td class='code'>329237c8-9bee-4fbc-afe0-95c3fef17bfc</td></tr></tbody></table></div>
+    </section>
+    <footer>Relatório gerado a partir dos dados do episódio. O pagamento é fictício e nenhum valor é cobrado.</footer>
+  </main>
+</body>
+</html>

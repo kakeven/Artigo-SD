@@ -28,6 +28,9 @@
     .section-grid { display: grid; grid-template-columns: minmax(280px, .9fr) minmax(420px, 1.7fr); gap: 14px; }
     .cascade { margin-bottom: 14px; }
     .agent-panel { margin-bottom: 14px; }
+    .shop { margin-bottom: 14px; }
+    .shop-grid { display: grid; grid-template-columns: repeat(5, minmax(130px, 1fr)); gap: 12px; }
+    .shop-grid .value { font-size: 1.8rem; }
     .decision { display: grid; grid-template-columns: minmax(90px, .6fr) minmax(120px, 1fr) minmax(150px, 1.2fr) 70px; gap: 12px; padding: 10px 0; border-top: 1px solid #e5edf3; font-size: .9rem; }
     .decision strong { color: var(--ink); }
     .decision .verified { color: var(--green); font-weight: 700; }
@@ -53,7 +56,7 @@
     td.code { font-family: Consolas, "Courier New", monospace; font-size: .82rem; }
     .empty { padding: 28px 0; color: var(--muted); }
     @media (max-width: 900px) { .summary { grid-template-columns: repeat(2, 1fr); } .section-grid { grid-template-columns: 1fr; } }
-    @media (max-width: 560px) { main { padding: 22px 14px 48px; } header { display: block; } .live { width: fit-content; margin-top: 18px; } .summary { grid-template-columns: 1fr 1fr; } .panel { padding: 16px; } .decision { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 560px) { main { padding: 22px 14px 48px; } header { display: block; } .live { width: fit-content; margin-top: 18px; } .summary, .shop-grid { grid-template-columns: 1fr 1fr; } .panel { padding: 16px; } .decision { grid-template-columns: 1fr 1fr; } }
     @media (prefers-reduced-motion: reduce) { .fill { transition: none; } }
   </style>
 </head>
@@ -62,7 +65,7 @@
     <header>
       <div>
         <h1>Observe a falha antes de corrigi-la.</h1>
-        <p>Compare retentativas e falhas em cascata. Siga cada requisição pelos eventos dos serviços.</p>
+        <p>Acompanhe pedidos da loja de roupas, retentativas e falhas em cascata pelos eventos dos serviços.</p>
       </div>
       <div id="live" class="live" role="status">Atualizando a cada 2 s</div>
     </header>
@@ -72,6 +75,18 @@
       <div class="panel"><div class="label">Chamadas ao serviço instável</div><div id="backend-total" class="value">0</div></div>
       <div class="panel"><div class="label">Tentativas pela proteção</div><div id="attempts" class="value">0</div></div>
       <div class="panel"><div class="label">Chamadas barradas</div><div id="blocked" class="value">0</div></div>
+    </section>
+
+    <section class="panel shop" aria-labelledby="shop-title">
+      <h2 id="shop-title">Loja de roupas</h2>
+      <div class="shop-grid">
+        <div><div class="label">Pedidos recebidos</div><div id="orders-total" class="value">0</div></div>
+        <div><div class="label">Pedidos confirmados</div><div id="orders-confirmed" class="value">0</div></div>
+        <div><div class="label">Falhas no estoque</div><div id="orders-inventory" class="value">0</div></div>
+        <div><div class="label">Falhas no pagamento</div><div id="orders-payment" class="value">0</div></div>
+        <div><div class="label">Pendentes de conciliação</div><div id="orders-pending" class="value">0</div></div>
+      </div>
+      <p class="tip">Execute <code>python containers/demo_loja.py</code> na raiz do projeto para criar pedidos durante uma falha.</p>
     </section>
 
     <section class="panel agent-panel" aria-labelledby="agent-title">
@@ -167,6 +182,8 @@
         const protection = data.protection;
         const backend = data.backend;
         const normal = data.normal;
+        const payment = data.payment;
+        const shop = data.shop;
         const state = protection.stats.circuit.state;
         const circuit = byId('circuit'); circuit.textContent = state.replace('_', ' '); circuit.className = `value state ${state}`;
         byId('attempts').textContent = integer(protection.stats.backend_attempts);
@@ -174,13 +191,18 @@
         byId('backend-total').textContent = backend.reachable ? integer(backend.stats.total) : '—';
         byId('unsafe-success').textContent = normal.reachable ? integer(normal.stats.independent.unsafe.success) : '—';
         byId('protected-success').textContent = normal.reachable ? integer(normal.stats.independent.protected.success) : '—';
+        byId('orders-total').textContent = shop.reachable ? integer(shop.stats.total) : '—';
+        byId('orders-confirmed').textContent = shop.reachable ? integer(shop.stats.confirmed) : '—';
+        byId('orders-inventory').textContent = shop.reachable ? integer(shop.stats.inventory_unavailable + shop.stats.stock_unavailable) : '—';
+        byId('orders-payment').textContent = shop.reachable ? integer(shop.stats.payment_unavailable) : '—';
+        byId('orders-pending').textContent = shop.reachable ? integer(shop.stats.compensation_pending + shop.stats.pending_reconciliation) : '—';
         renderBars(backend.reachable ? backend.stats.por_cenario : {});
         renderAgent(data.agent);
-        const events = [...protection.events, ...(backend.reachable ? backend.events : []), ...(normal.reachable ? normal.events : [])]
+        const events = [...protection.events, ...(backend.reachable ? backend.events : []), ...(normal.reachable ? normal.events : []), ...(payment.reachable ? payment.events : [])]
           .sort((a, b) => b.timestamp.localeCompare(a.timestamp)).slice(0, 500);
         renderEvents(events);
-        live.textContent = backend.reachable && normal.reachable ? 'Atualizando a cada 2 s' : 'Um serviço está indisponível';
-        live.classList.toggle('off', !backend.reachable || !normal.reachable);
+        live.textContent = backend.reachable && normal.reachable && payment.reachable && shop.reachable ? 'Atualizando a cada 2 s' : 'Um serviço está indisponível';
+        live.classList.toggle('off', !backend.reachable || !normal.reachable || !payment.reachable || !shop.reachable);
       } catch (error) {
         live.textContent = `Falha ao ler dados: ${error.message}`;
         live.classList.add('off');

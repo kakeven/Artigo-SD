@@ -10,9 +10,12 @@ import time
 import httpx
 from fastapi import FastAPI, Query, Request
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
 
 app = FastAPI(title="Container Normal")
 backend_url = os.getenv("BACKEND_URL", "http://instavel:8000")
+inventory_url = os.getenv("INVENTORY_URL", "http://instavel:8000")
+payment_url = os.getenv("PAYMENT_URL", "http://carga:8000")
 client = httpx.Client(timeout=3.0, trust_env=False)
 shared_capacity = BoundedSemaphore(4)
 dependency_bulkhead = BoundedSemaphore(2)
@@ -25,6 +28,18 @@ metrics = {
     "dependent": {"unsafe": {"completed": 0, "rejected": 0}, "protected": {"completed": 0, "rejected": 0}},
     "active_dependent": {"unsafe": 0, "protected": 0},
 }
+products = {
+    "camiseta-basica": {"name": "Camiseta basica", "price_cents": 5990, "sizes": ["P", "M", "G"]},
+    "moletom-capuz": {"name": "Moletom com capuz", "price_cents": 12990, "sizes": ["P", "M", "G"]},
+}
+orders = {}
+control_token = os.getenv("AGENT_CONTROL_TOKEN", "")
+
+
+class OrderRequest(BaseModel):
+    sku: str
+    size: Literal["P", "M", "G"]
+    quantity: int = Field(ge=1, le=10)
 
 
 def log_event(event: str, request_id: str, scenario: str, **details):
@@ -62,6 +77,85 @@ def work(request: Request):
         metrics["work"]["success"] += 1
     log_event("service_response", request_id, "agent_demo", status=200)
     return {"service": "normal", "status": "ok"}
+
+
+@app.get("/products")
+def list_products():
+    return [{"sku": sku, **details} for sku, details in products.items()]
+
+
+@app.get("/orders/{order_id}")
+def get_order(order_id: str):
+    with lock:
+        order = orders.get(order_id)
+        return dict(order) if order else JSONResponse(status_code=404, content={"detail": "Pedido nao encontrado"})
+
+
+@app.get("/shop/stats")
+def shop_stats():
+    with lock:
+        counts = {"confirmed": 0, "stock_unavailable": 0, "inventory_unavailable": 0,
+                  "payment_unavailable": 0, "compensation_pending": 0,
+                  "pending_reconciliation": 0, "pending": 0}
+        for order in orders.values():
+            counts[order["status"]] += 1
+        return {"total": len(orders), **counts}
+
+
+@app.post("/orders")
+def create_order(payload: OrderRequest, request: Request):
+    product = products.get(payload.sku)
+    if product is None:
+        return JSONResponse(status_code=404, content={"detail": "Produto nao encontrado"})
+    order_id = str(uuid4())
+    request_id = (request.headers.get("x-request-id") or order_id)[:128]
+    order = {"order_id": order_id, "request_id": request_id, "sku": payload.sku, "size": payload.size,
+             "quantity": payload.quantity,
+             "total_cents": product["price_cents"] * payload.quantity, "status": "pending"}
+    with lock:
+        orders[order_id] = order
+    headers = {"X-Request-ID": request_id, "X-Scenario": "shop_order"}
+    release_headers = {**headers, "Authorization": f"Bearer {control_token}"}
+    log_event("order_started", request_id, "shop_order", order_id=order_id, sku=payload.sku, size=payload.size)
+    try:
+        reserved = client.post(f"{inventory_url}/inventory/reservations", json={
+            "order_id": order_id, "sku": payload.sku, "size": payload.size, "quantity": payload.quantity,
+        }, headers=headers)
+        if reserved.status_code != 200:
+            status = 409 if reserved.status_code in (404, 409) else 503
+            with lock:
+                order["status"] = "stock_unavailable" if status == 409 else "inventory_unavailable"
+            log_event("order_failed", request_id, "shop_order", order_id=order_id, status=status, stage="inventory")
+            return JSONResponse(status_code=status, content=dict(order))
+        charged = client.post(f"{payment_url}/payments/charges", json={
+            "order_id": order_id, "amount_cents": order["total_cents"],
+        }, headers=headers)
+        if charged.status_code != 200:
+            released = client.post(f"{inventory_url}/inventory/reservations/{order_id}/release", headers=release_headers)
+            with lock:
+                order["status"] = "payment_unavailable" if released.status_code == 200 else "compensation_pending"
+            log_event("order_failed", request_id, "shop_order", order_id=order_id, status=503, stage=order["status"])
+            return JSONResponse(status_code=503, content=dict(order))
+    except httpx.RequestError:
+        with lock:
+            order["status"] = "pending_reconciliation"
+        log_event("order_pending", request_id, "shop_order", order_id=order_id, status=503, stage="transport")
+        return JSONResponse(status_code=503, content=dict(order))
+    try:
+        payment_body = charged.json()
+        payment_id = payment_body.get("payment_id") if isinstance(payment_body, dict) else None
+    except ValueError:
+        payment_id = None
+    if not payment_id:
+        with lock:
+            order["status"] = "pending_reconciliation"
+        log_event("order_pending", request_id, "shop_order", order_id=order_id, status=503, stage="payment_response")
+        return JSONResponse(status_code=503, content=dict(order))
+    with lock:
+        order["status"] = "confirmed"
+        order["payment_id"] = payment_id
+    log_event("order_confirmed", request_id, "shop_order", order_id=order_id, status=201)
+    return JSONResponse(status_code=201, content=dict(order), headers={"X-Request-ID": request_id})
 
 
 @app.get("/dependent")
