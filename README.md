@@ -42,6 +42,7 @@ Use `--sem-build` para reutilizar as imagens Docker. Para executar somente um ep
 Veja o [relatório comparativo de 15 episódios](docs/exemplos/comparacao_loja.html) e seus [dados completos](docs/exemplos/comparacao_loja.json). Há também um [exemplo anterior de um único episódio](docs/exemplos/loja_roupas.html). Os relatórios de novas execuções são temporários e ficam em `containers/resultados/`.
 
 O [funcionamento de cada estratégia](docs/funcionamento_das_estrategias.md) está explicado em um documento separado, com exemplos das decisões e limites da comparação.
+Os [detalhes técnicos da Random Forest, do Qwen e da memória](docs/algoritmos_modelo_e_memoria.md) estão em outro documento.
 
 Para transformar um JSON anterior em relatório visual:
 
