@@ -98,8 +98,8 @@ services:
       GATEWAY_URL: http://protecao:8000
       LOG_DB_PATH: /data/observabilidade.db
       AGENT_CONTROL_TOKEN: ${AGENT_CONTROL_TOKEN:?Execute python preparar_ambiente.py}
-      OLLAMA_URL: http://host.docker.internal:11434
-      OLLAMA_MODEL: qwen2.5:1.5b-instruct-q4_K_M
+      OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:1.5b-instruct-q4_K_M}
     volumes:
       - agent_data:/data
       - ./pagamentos:/source/pagamentos:ro

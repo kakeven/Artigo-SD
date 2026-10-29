@@ -28,7 +28,23 @@ ACTION = {"disable_simulated_fault": "Desativar a falha intermitente do estoque"
           "reset_circuit_breaker": "Reiniciar o circuito do pagamento", "no_action": "Nenhuma ação"}
 STRATEGY = {"rf": "Random Forest", "memory": "Random Forest com memória", "qwen_memory": "Qwen com memória"}
 DECISION_SOURCE = {"rf_fallback": "regra padrão", "memory": "memória", "qwen": "Qwen",
+                   "code_fallback": "regra local após falha do Qwen",
                    "qwen_unavailable_or_invalid": "Qwen indisponível ou resposta inválida"}
+QWEN_FAILURE = {"connection": "sem conexão com Ollama pelo contêiner",
+                "model_missing": "modelo Qwen não encontrado no Ollama",
+                "timeout": "modelo não respondeu no prazo",
+                "generation_error": "erro na chamada ao modelo",
+                "invalid_response": "resposta inválida do modelo",
+                "unknown": "falha não identificada"}
+
+
+def decision_source_label(source: str) -> str:
+    for prefix in ("code_fallback_", "qwen_failed_"):
+        if source.startswith(prefix):
+            reason = QWEN_FAILURE.get(source[len(prefix):], "falha não identificada")
+            return ("regra local após falha do Qwen: " if prefix == "code_fallback_"
+                    else "Qwen sem reparo: ") + reason
+    return DECISION_SOURCE.get(source, source)
 CAUSE = {"overload": "Sobrecarga no pagamento", "dependency_timeout": "Tempo esgotado no pagamento",
          "dependency_unavailable": "Dependência do estoque indisponível",
          "reservation_locked": "Reserva de estoque bloqueada",
@@ -283,7 +299,16 @@ def render_comparison_html(report: dict) -> str:
             recovered, confirmed, total, delay = outcome(episode)
             label = "Reparado" if recovered else "Não reparado"
             css = "good" if recovered else "bad"
-            cells.append(f'<td><strong class="{css}">{label}</strong><small>{confirmed}/{total} pedidos · {delay}</small></td>')
+            if strategy == "qwen_memory":
+                decision = next((item for item in episode.get("decisions", [])
+                                 if item.get("target") == episode.get("target")), None)
+                source = decision.get("strategy", "") if decision else ""
+                if source.startswith("code_fallback_"):
+                    label = "Reparado por regra local" if recovered else "Regra local sem reparo"
+                detail = decision_source_label(source) if source else "sem decisão do agente"
+                cells.append(f'<td><strong class="{css}">{safe(label)}</strong><small>{confirmed}/{total} pedidos · {delay}<br>{safe(detail)}</small></td>')
+            else:
+                cells.append(f'<td><strong class="{css}">{label}</strong><small>{confirmed}/{total} pedidos · {delay}</small></td>')
         matrix_rows.append(f"<tr><th scope='row'>{safe(CAUSE.get(cause, cause))}</th>{''.join(cells)}</tr>")
 
     strategy_sections = []
@@ -303,7 +328,7 @@ def render_comparison_html(report: dict) -> str:
             checks_ok = sum(item.get("status") == "confirmed" for item in orders[-3:]) if len(orders) >= 3 else 0
             action_text = "; ".join(
                 f"{ACTION.get(item.get('action'), item.get('action', 'Nenhuma ação'))} "
-                f"(origem: {DECISION_SOURCE.get(item.get('strategy'), item.get('strategy', 'desconhecida'))}; "
+                f"(origem: {decision_source_label(item.get('strategy', 'desconhecida'))}; "
                 f"{'verificado' if item.get('verified') else 'sem verificação positiva'})"
                 for item in decisions
             ) or "O agente não registrou uma decisão para esta causa."
