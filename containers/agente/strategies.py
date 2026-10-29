@@ -2,6 +2,7 @@
 
 from collections import Counter
 from pathlib import Path
+import ast
 import json
 import os
 
@@ -30,6 +31,25 @@ SOURCE_FILES = {
 }
 
 
+def relevant_source(target: str) -> str:
+    """Extrai as regras de erro e reparo do codigo montado em leitura."""
+    try:
+        source = SOURCE_FILES[target].read_text(encoding="utf-8")
+        tree = ast.parse(source)
+    except (OSError, SyntaxError):
+        return "fonte indisponivel"
+    excerpts = []
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and any(
+            isinstance(item, ast.Name) and item.id in ("ERROR_NAMES", "REPAIR_ACTIONS")
+            for item in node.targets
+        ):
+            excerpts.append(ast.get_source_segment(source, node))
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == "repair":
+            excerpts.append(ast.get_source_segment(source, node))
+    return "\n\n".join(part for part in excerpts if part) or "regras de reparo indisponiveis"
+
+
 def most_common_error(names: list[str]) -> str:
     return Counter(names).most_common(1)[0][0] if names else ""
 
@@ -52,16 +72,14 @@ def choose_action(strategy: str, target: str, error_name: str, statuses: list[in
 
 def ask_qwen(target: str, error_name: str, statuses: list[int]) -> tuple[str | None, str]:
     """Consulta somente logs resumidos e fonte montada como leitura; nunca executa saida do LLM."""
-    source_path = SOURCE_FILES[target]
-    try:
-        source = source_path.read_text(encoding="utf-8")[:16000]
-    except OSError:
-        source = "fonte indisponivel"
+    source = relevant_source(target)
     actions = sorted(ALLOWED_ACTIONS[target])
     prompt = (
-        "Voce analisa um incidente de laboratorio. Escolha UMA acao permitida com base no nome do erro, "
-        "na sequencia HTTP e no codigo. Responda somente JSON: {\"action\": \"...\"}. "
-        "Se nao houver evidencia suficiente, action deve ser null. "
+        "Voce analisa um incidente simulado. Encontre em ERROR_NAMES o modo correspondente ao erro observado. "
+        "Depois, use esse mesmo modo como chave de REPAIR_ACTIONS para escolher a acao. "
+        "A funcao repair confirma que outra acao nao corrige a causa. "
+        "Nao escolha pela sequencia HTTP quando houver nome de erro, pois todas as causas podem retornar 503. "
+        "Responda somente JSON: {\"action\": \"...\"}. Se a relacao nao existir, use null. "
         f"Servico: {target}. Erro observado: {error_name!r}. Status recentes: {statuses}. "
         f"Acoes permitidas: {actions}. Codigo-fonte em leitura:\n{source}"
     )

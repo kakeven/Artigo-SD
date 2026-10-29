@@ -104,7 +104,7 @@ Na comparação atual, a memória inicial contém `pagamentos + OverloadError + 
 
 O identificador `qwen_memory` não significa um detector novo. O detector continua sendo a Random Forest. A estratégia primeiro faz **a mesma busca na memória**. Se encontrar um caso com três verificações, usa a ação lembrada e não chama Qwen.
 
-Se não houver caso suficiente, `containers/agente/strategies.py` monta um prompt com o serviço afetado, o nome do erro observado, a sequência HTTP recente, as ações permitidas e até 16.000 caracteres do código-fonte do serviço. O código é montado no contêiner do agente somente para leitura. A chamada vai à API local `/api/generate` do Ollama com o modelo configurado `qwen2.5:1.5b-instruct-q4_K_M`, saída em formato JSON, `temperature = 0`, `num_ctx = 4096` e tempo máximo de 45 segundos.
+Se não houver caso suficiente, `containers/agente/strategies.py` monta um prompt com o serviço afetado, o nome do erro observado, a sequência HTTP recente, as ações permitidas e os trechos `ERROR_NAMES`, `REPAIR_ACTIONS` e `repair` extraídos do código-fonte do serviço. O prompt pede ao Qwen que encontre o modo associado ao nome do erro e use esse modo para consultar a ação correspondente. O código é montado no contêiner do agente somente para leitura. A chamada vai à API local `/api/generate` do Ollama, com saída em formato JSON, `temperature = 0`, `num_ctx = 4096` e tempo máximo de 45 segundos. O agente pode tentar outro modelo `qwen2.5` instalado se o nome configurado não estiver presente.
 
 O formato solicitado é `{"action": "nome_da_ação"}`. O agente extrai esse campo e aceita a proposta apenas se ela estiver no conjunto permitido para o serviço:
 
@@ -113,7 +113,7 @@ O formato solicitado é `{"action": "nome_da_ação"}`. O agente extrai esse cam
 | `estoque` | `disable_simulated_fault`, `restore_inventory_dependency`, `release_reservation_lock` |
 | `pagamentos` | `reset_overload`, `restore_dependency`, `reset_circuit_breaker` |
 
-Se Ollama não responder, o JSON for inválido ou a ação estiver fora da lista, a função retorna `None`. A decisão é registrada como `no_action`, com origem `qwen_unavailable_or_invalid`; **não há retorno automático à regra fixa** nesse caso. Se Qwen propuser uma ação da lista, o agente chama `/repair` e faz a mesma verificação usada pelas outras estratégias. Uma ação permitida ainda pode ser errada para a causa atual: o serviço rejeita a incompatibilidade e a decisão fica sem verificação positiva.
+Se Ollama não responder, o JSON for inválido ou a ação estiver fora da lista, o agente tenta uma regra local para os nomes de erro simulados conhecidos. O relatório identifica essa origem como `code_fallback_*` e mostra o motivo da falha do modelo; portanto, esse reparo não conta como escolha do Qwen. Sem regra conhecida, registra `no_action`. Se Qwen propuser uma ação da lista, o agente chama `/repair` e faz a mesma verificação usada pelas outras estratégias. Uma ação permitida ainda pode ser errada para a causa atual: o serviço rejeita a incompatibilidade e a decisão fica sem verificação positiva.
 
 Quando a ação proposta por Qwen é verificada, ela entra na mesma memória SQLite. Depois de três sucessos verificados para o mesmo serviço e nome de erro, episódios futuros podem reutilizá-la sem chamar Qwen. Os pesos do Qwen permanecem iguais; a mudança ocorre na tabela de casos.
 
@@ -124,7 +124,7 @@ Quando a ação proposta por Qwen é verificada, ela entra na mesma memória SQL
 | Detectar padrão de falha | Random Forest | Random Forest | Random Forest |
 | Procurar ação verificada na memória | Não | Sim | Sim |
 | Se a memória não conhecer o erro | Regra fixa | Regra fixa | Consulta Qwen |
-| Se Qwen estiver indisponível ou inválido | Não se aplica | Não se aplica | `no_action` |
+| Se Qwen estiver indisponível ou inválido | Não se aplica | Não se aplica | Regra local para erros simulados conhecidos; caso contrário, `no_action` |
 | Verificar o serviço após uma ação | Sim | Sim | Sim |
 | Registrar reparo verificado na memória | Sim, embora não consulte a memória | Sim | Sim |
 
